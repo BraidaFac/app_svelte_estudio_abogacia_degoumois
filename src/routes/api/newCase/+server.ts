@@ -48,7 +48,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			collector: collector && i === 0 ? collector : undefined,
 			amount:
 				amount_payment_float && i === 0
-					? +(parseFloat(amount_payment_float) / jus_value).toFixed(3)
+					? +(parseFloat(amount_payment_float) / jus_value).toFixed(1)
 					: undefined,
 			current:
 				(i === 0 && !amount_payment_float) || (i === 1 && amount_payment_float) ? true : false,
@@ -63,10 +63,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		clientPhone,
 		userId: user.id,
 		payments: { create: payments },
-		amount: +parseFloat(amount).toFixed(3),
+		amount: +parseFloat(amount).toFixed(1),
 		restAmount: amount_payment_float
 			? +(parseFloat(amount) - parseFloat(amount_payment_float) / jus_value).toFixed(3)
-			: +parseFloat(amount).toFixed(3)
+			: +parseFloat(amount).toFixed(1)
 	};
 
 	try {

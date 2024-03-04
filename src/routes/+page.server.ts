@@ -34,9 +34,12 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 		});
 	}
 	cases.sort((a, b) => {
-		const dateA = a.payments.find((p) => p.current)?.due_date;
-		const dateB = b.payments.find((p) => p.current)?.due_date;
-		return dateA.getTime() - dateB.getTime();
+		if (a && b) {
+			const dateA = a.payments.find((p) => p.current)?.due_date;
+			const dateB = b.payments.find((p) => p.current)?.due_date;
+			console.log(dateA, dateB);
+			return dateA?.getDate() - dateB?.getDate();
+		} else return 1;
 	});
 	cases = cases.map((c) => {
 		return {

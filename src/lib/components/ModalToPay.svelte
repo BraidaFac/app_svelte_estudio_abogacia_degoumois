@@ -134,11 +134,11 @@
 			</label>
 			<label class="label">
 				<span>Total JUS</span>
-				<input class="input"  readonly type="text" value={`${caso.amount}`}/>
+				<input class="input"  readonly type="text" value={`${caso.amount.toFixed(1).replace('\.',',')}`}/>
 			</label>
 			<label class="label">
 				<span>Adeuda JUS</span>
-				<input class="input" readonly  style="color:red"type="text" value={`${caso.restAmount}`}/>
+				<input class="input" readonly  style="color:red"type="text" value={`${caso.restAmount.toFixed(1).replace('\.',',')}`}/>
 			</label>
 			<label class="label">
 				<span>Cantidad de JUS</span>
