@@ -65,7 +65,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		payments: { create: payments },
 		amount: +parseFloat(amount).toFixed(1),
 		restAmount: amount_payment_float
-			? +(parseFloat(amount) - parseFloat(amount_payment_float) / jus_value).toFixed(3)
+			? +(parseFloat(amount) - parseFloat(amount_payment_float) / jus_value).toFixed(1)
 			: +parseFloat(amount).toFixed(1)
 	};
 
