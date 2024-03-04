@@ -33,11 +33,11 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 			};
 		});
 	}
+	console.log(cases);
 	cases.sort((a, b) => {
 		if (a && b) {
 			const dateA = a.payments.find((p) => p.current)?.due_date;
 			const dateB = b.payments.find((p) => p.current)?.due_date;
-			console.log(dateA, dateB);
 			return dateA?.getDate() - dateB?.getDate();
 		} else return 1;
 	});

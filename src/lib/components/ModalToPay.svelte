@@ -32,7 +32,6 @@
 	try{
 		const form = new FormData(case_form);
 		const data = Object.fromEntries(form.entries());
-		
 		validateOrThrow(data,paymentSchema);
 		const response = await fetch('/api/newPayment', {
 			method: 'POST',
@@ -51,6 +50,9 @@
 	
 	function onInputTransform(event: Event) {
 		const input = event.target as HTMLInputElement;
+		if(input ===input_PESOS){
+			input.value= addThousandSeparator(+input.value.replace(/\./g, ''));
+		}
 		const value = input.value.includes('.')&&input===input_PESOS? +(input.value.replace(/\./g, '')): input.value.includes('.')&&input===input_JUS? +input.value.replace(/\./,","): +(input.value.replace(/\,/g, '.'));
 		if(isNaN(value)) {
 			input.value = input.value.slice(0,-1);
@@ -82,11 +84,12 @@
 			const amount = +(input_JUS.value.replace(/\./g,','));	
 			if(amount>caso.restAmount){
 				input_JUS.value = (caso.restAmount.toFixed(1)).replace(/\./g,',');
+				input_PESOS.value = addThousandSeparator(+(+caso.restAmount * jus_value).toFixed(0));
 			}
 		}
 		else{
 			const amount_pesos = input_PESOS.value.replace(/\./g,'');		
-			if(+(+amount_pesos/jus_value).toFixed(3) > +(caso.restAmount).toFixed(1)){
+			if(+(+amount_pesos/jus_value).toFixed(1) > +(caso.restAmount).toFixed(1)){
 				input_PESOS.value = (caso.restAmount * jus_value).toFixed(0);
 			}
 		}
@@ -156,7 +159,7 @@
 			</label>
 			<label class="label">
 				<span>Pesos</span>
-				<input class="input" type="text"  on:input={verifyPayment} bind:this={input_PESOS}  on:input={onInputTransform} placeholder="PESOS" />
+				<input class="input" type="text"   bind:this={input_PESOS} on:input={verifyPayment} on:input={onInputTransform}  placeholder="PESOS" />
 			</label>
 			<label class="label">
 				<span>Metodo de pago</span>
