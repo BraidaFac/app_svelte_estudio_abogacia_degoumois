@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  password String
+  role     Role     @default(USER)
+  cases    Cases[]
+}
+
+model Cases {
+  id          Int      @id @default(autoincrement())
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime? @updatedAt
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  clientName  String
+  clientPhone String
+  amount      Float
+  restAmount Float 
+  payments    Payment[]
+  type        typeCase  
+}
+model Payment{
+  payment_number Int
+  due_date    DateTime
+  payment_date DateTime?
+  caseId      Int 
+  case        Cases     @relation(fields: [caseId], references: [id])
+  typepayment PaymentType?
+  amount      Float?
+  current     Boolean
+  collector  String?
+  @@id([payment_number, caseId])
+}
+
+model Currency{
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  value   Float
+}
+enum Role {
+  ADMIN
+  USER
+}
+enum typeCase {
+  CIVIL
+  PENAL
+  LABORAL
+  FAMILIAR
+  OTRO
+}
+enum PaymentType {
+  EFECTIVO
+  TRANSFERENCIA
+  CHEQUE
+  TARJETA
+  DEBITO
+  MERCADOPAGO
+  DEPOSITO
+}

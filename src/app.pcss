@@ -1,0 +1,19 @@
+/* Write your global styles here, in PostCSS syntax */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+html,
+body {
+	@apply h-full overflow-hidden;
+	font-family: 'Quicksand', sans-serif;
+}
+
+.input {
+	@apply focus:border-white;
+}
+@font-face {
+	font-family: 'Quicksand';
+	src: url('http://localhost:5173/fonts/Quicksand-Regular.ttf') format('truetype');
+	font-weight: normal;
+	font-style: normal;
+}
