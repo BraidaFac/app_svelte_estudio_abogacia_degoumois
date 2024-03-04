@@ -98,8 +98,15 @@
 	}
 	function calculatePayment(){
 		const quantityPaymentToPay = caso.quantityPaymentsToPay;
-		const amountToPay = caso.restAmount;
-		const amountJus = ((amountToPay / quantityPaymentToPay)).toFixed(1);
+		let amountToPay= caso.restAmount;
+		let amountJus;
+		if(quantityPaymentToPay === 1) {
+			amountJus = amountToPay.toFixed(1);
+		}
+		else{
+			amountJus = ((amountToPay / quantityPaymentToPay)).toFixed(1);
+
+		}
 		input_JUS.value = amountJus.replace(/\./,',');
 		input_PESOS.value = addThousandSeparator(+(+amountJus * jus_value).toFixed(0));
 	}
