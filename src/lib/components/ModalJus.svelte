@@ -6,7 +6,7 @@
 	let case_form : HTMLFormElement;
 	let response_state:number |undefined;
 	let form : {errors: Record<string, string|undefined|string[]>};
-	const {jus_value }= $page.data;
+	const {jus_value }= $page.data ?? '0';
 	const modalStore = getModalStore();
 	 function validateOrThrow(obj: Object, schema:ZodObject<any, any>) {
     	schema.parse(obj);

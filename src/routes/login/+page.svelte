@@ -16,9 +16,8 @@
 		}
 	}
 </script>
-<div class="w-1/2 mx-auto">
-    <h1>Login</h1>
-    <form method="POST"
+<div class="w-1/3 mx-auto">
+    <form method="POST" 
     use:enhance={({formData,cancel})=>{
       try { 
 				validateOrThrow(formData);
@@ -32,15 +31,15 @@
     }}>
         <label>
         <span>Nombre</span>
-        <input type="text" name="name" />
+        <input class="input"type="text" name="name" />
         </label>
         <label>
         <span>Password</span>
-        <input type="password" name="password" />
+        <input class="input"type="password" name="password" />
         </label>
         {#if form?.message}
         <span class="text-red-600 block">{form?.message}</span>
         {/if}
-        <button type="submit">Login</button>
+        <button class="btn variant-filled-primary mt-3" type="submit">Login</button>
     </form>
 </div>

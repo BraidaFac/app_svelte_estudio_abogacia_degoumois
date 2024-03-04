@@ -10,11 +10,15 @@ export const getJusValue = async () => {
 };
 
 export const setJusValue = async (value: number) => {
-	const jus = await db.currency.update({
+	const jus = await db.currency.upsert({
 		where: {
 			name: 'JUS'
 		},
-		data: {
+		update: {
+			value
+		},
+		create: {
+			name: 'JUS',
 			value
 		}
 	});

@@ -4,7 +4,6 @@
 	import { differenceInHours } from 'date-fns';
 	import { onDestroy } from 'svelte';
 	export let cases;
-	console.log(cases);
 	
     const modalStore = getModalStore();
 

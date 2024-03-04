@@ -52,7 +52,6 @@
 	try{
 		const form = new FormData(case_form);
 		const data = Object.fromEntries(form.entries());
-		const {amount_payment, typepayment} = data;
 		validateOrThrow(data,modalSchema);
 		const response = await fetch('/api/newCase', {
 			method: 'POST',
@@ -89,6 +88,7 @@
 		};
 		switch (input){
 			case input_JUS:
+		
 				input_PESOS.value = addThousandSeparator(+(value * jus_value).toFixed(0));
 				console.log(input_PESOS.value);
 				

@@ -5,10 +5,7 @@
     const modalStore = getModalStore();
 	const param =  $page.params.estado;
 	let previousModalValue:ModalSettings|undefined= $modalStore[0];
-    const modal: ModalSettings = {
-	type: 'component',
-	component: 'modal',
-};
+
 const modalToPay: ModalSettings = {
 	type: 'component',
 	component: 'modalToPay',
@@ -19,7 +16,6 @@ const modalDetalle: ModalSettings = {
 	component: 'modalDetalle',
 	meta: {}
 	}
-    //modalStore.trigger(modal);
 export let data;
 let cases:any;
 $:{
@@ -56,7 +52,7 @@ $:{
 			<tbody>{
 				#if cases.length === 0}
 				<tr>
-					<td colspan="7">No existen</td>
+					<td colspan="8">No existen</td>
 				</tr>
 				{:else}
 				{#each cases as caso}
@@ -107,7 +103,7 @@ $:{
 			<tbody>{
 				#if cases.length === 0}
 				<tr>
-					<td colspan="7">No existen</td>
+					<td colspan="8">No existen</td>
 				</tr>
 				{:else}
 				{#each cases as caso}
@@ -159,7 +155,7 @@ $:{
 			<tbody>{
 				#if cases.length === 0}
 				<tr>
-					<td colspan="7">No existen</td>
+					<td colspan="8">No existen</td>
 				</tr>
 				{:else}
 				{#each cases as caso}
