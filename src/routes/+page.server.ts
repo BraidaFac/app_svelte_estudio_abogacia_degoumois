@@ -16,9 +16,9 @@ function formatear(fechaISO) {
 	}
 }
 export const load: PageServerLoad = async ({ locals, depends }) => {
-	depends('app:main');
+	depends('update:cases');
+	console.log('locals');
 	const user = locals.user;
-
 	if (!user) {
 		throw redirect(302, '/login');
 	}
@@ -33,7 +33,6 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 			};
 		});
 	}
-	console.log(cases);
 	cases.sort((a, b) => {
 		if (a && b) {
 			const dateA = a.payments.find((p) => p.current)?.due_date;

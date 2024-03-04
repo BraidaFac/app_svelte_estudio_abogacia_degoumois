@@ -5,6 +5,7 @@
 	import { paymentSchema } from '$lib/components/paymentSchema';
 	import {PaymentType} from '$lib/utils/paymentsTypes';
 	import { onMount } from 'svelte';
+	import { invalidate } from '$app/navigation';
 	let input_JUS: HTMLInputElement;
 	let input_PESOS : HTMLInputElement;	
 	let case_form : HTMLFormElement;
@@ -42,6 +43,9 @@
 		});
 
 		response_state = response.status;
+		if(response.status === 200&& $page.url.pathname === '/'){
+			invalidate('update:cases')
+		}
 	}
 	catch(error){
 		manageError(error);
