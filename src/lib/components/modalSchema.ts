@@ -21,6 +21,5 @@ export const modalSchema = z.object({
 		.string({ required_error: 'Ingrese fecha de vencimiento' })
 		.min(1, { message: 'Ingrese fecha de cobro' }),
 	amount_payment: z.string().min(1, { message: 'Ingrese monto' }).optional(),
-	typepayment: z.string().min(1, { message: 'Ingrese tipo de pago' }).optional(),
-	collector: z.string().min(1, { message: 'Ingrese cobrador' }).optional()
+	typepayment: z.string().min(1, { message: 'Ingrese tipo de pago' }).optional()
 });

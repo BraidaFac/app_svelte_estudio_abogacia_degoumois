@@ -7,3 +7,8 @@ export enum PaymentType {
 	MERCADOPAGO = 'MercadoPago',
 	DEBITO = 'Debito'
 }
+export enum Timing {
+	QUINCENAL = 'QUINCENAL',
+	MENSUAL = 'MENSUAL',
+	SEMANAL = 'SEMANAL'
+}

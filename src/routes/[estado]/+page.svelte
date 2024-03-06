@@ -2,10 +2,11 @@
 	import { getModalStore, type ModalSettings} from '@skeletonlabs/skeleton';
 	import {page} from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
+	import { onMount } from 'svelte';
     const modalStore = getModalStore();
 	const param =  $page.params.estado;
 	let previousModalValue:ModalSettings|undefined= $modalStore[0];
-
+	let activeBtn = false;
 const modalToPay: ModalSettings = {
 	type: 'component',
 	component: 'modalToPay',
@@ -19,7 +20,9 @@ const modalDetalle: ModalSettings = {
 export let data;
 let cases:any;
 $:{
-	cases= data.cases
+	if(data?.cases){
+		cases= data.cases
+	}
 }
  $:{  if(!$modalStore[0] && previousModalValue){
 	invalidateAll();
@@ -30,10 +33,25 @@ $:{
 		previousModalValue=$modalStore[0]
 	}
 } 
+onMount(()=>{
+	document.addEventListener('scroll',()=>{
+		const navBar = document.querySelector('.nav-bar');
+		if(navBar&& window.scrollY  > navBar.clientHeight+100){ 
+			activeBtn= true;
+		}
+		else{
+			activeBtn= false;
+		}
+	})
+})
 
 </script>
 {#if param.toUpperCase() === "VENCIDO"}
-	
+{#if activeBtn}
+		<button class="btn h-8 variant-filled-warning fixed bottom-5 left-1/2" on:click={()=>{
+			document.documentElement.scrollTop = 0;
+		}}>Volver</button>
+		{/if}
 	<section >
 		<p class="text-3xl bg-red-800 rounded-md text-center">Cuotas vencidas</p>
 		<table class="table table-interactive text-center">
@@ -85,6 +103,11 @@ $:{
 		</table>
 	</section>
 	{:else if param.toUpperCase() === "PROXIMO"}
+	{#if activeBtn}
+		<button class="btn h-8 variant-filled-warning fixed bottom-5 left-1/2" on:click={()=>{
+			document.documentElement.scrollTop = 0;
+		}}>Volver</button>
+		{/if}
 	<section >
 		<p class="text-3xl bg-yellow-600 rounded-md text-center">Cuotas por vencer</p>
 		<table class="table table-interactive text-center">
@@ -137,7 +160,12 @@ $:{
 		</table>
 	</section>
 	{:else}
-	<section >
+	{#if activeBtn}
+		<button class="btn h-8 variant-filled-warning fixed bottom-5 left-1/2" on:click={()=>{
+			document.documentElement.scrollTop = 0;
+		}}>Volver</button>
+		{/if}
+	<section class="">
 		<p class="text-3xl bg-green-700  rounded-md text-center ">Cuotas a tiempo</p>
 		<table class="table table-interactive text-center">
 			<thead>

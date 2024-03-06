@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { enhance } from "$app/forms";
-	import { invalidate } from "$app/navigation";
 	import type { ActionData } from './$types';
     export let form:ActionData;
 
@@ -17,7 +16,8 @@
 	}
 </script>
 <div class="w-1/3 mx-auto">
-    <form method="POST" 
+    <h1 class="text-4xl mb-10 text-center">Iniciar Sesion</h1>
+    <form class="" method="POST" 
     use:enhance={({formData,cancel})=>{
       try { 
 				validateOrThrow(formData);

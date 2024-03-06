@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { getModalStore } from '@skeletonlabs/skeleton';
+	import { getModalStore, ProgressRadial } from '@skeletonlabs/skeleton';
 	import { page } from '$app/stores';
 	import {  differenceInHours} from "date-fns";
 	import { fade } from 'svelte/transition';
 	import {modalSchema} from '$lib/components/modalSchema';
 	import { ZodError, ZodObject } from 'zod';
-	import type { ActionData } from '../../routes/$types';
 	import { PaymentType } from '$lib/utils/paymentsTypes';
 	import {typeCases } from '$lib/utils/casesTypes';
-	import { invalidate } from '$app/navigation';
+	import {Timing } from '$lib/utils/paymentsTypes';
+	let loading = false;
 	let input_JUS: HTMLInputElement;
 	let input_PESOS : HTMLInputElement;	
 	let input_quantity_payment : HTMLInputElement;
@@ -17,7 +17,7 @@
 	let response_state:number |undefined;
 	let due_date:Date;
 	let isToday:boolean;
-
+	const user = $page.data.user;
 
 	function addThousandSeparator(price: number) {
 		return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -50,9 +50,9 @@
 	}
 	async function onFormSubmit() {
 	try{
+		loading = true;
 		const form = new FormData(case_form);
 		const data = Object.fromEntries(form.entries());
-		console.log(data);
 		validateOrThrow(data,modalSchema);
 		const response = await fetch('/api/newCase', {
 			method: 'POST',
@@ -61,10 +61,11 @@
 			},
 			body: JSON.stringify(data),
 		});
-		invalidate('app:main')
+		loading = false;
 		response_state = response.status;
 	}
 	catch(error){
+		loading = false;
 		manageError(error);
 	}
 	}
@@ -93,28 +94,24 @@
 				break;
 			case input_PESOS:
 				input_PESOS.value = addThousandSeparator(+value);
-				input_JUS.value =(value /jus_value).toFixed(1).replace(/\./,',');
+				input_JUS.value =(value /jus_value).toFixed(2).replace(/\./,',');
 				break;
 		}
 		
 	}
 
 	function calculatePayment(){
-		const amount = +(input_JUS.value).replace(/\,/g, '.');
+		const amount = +(input_PESOS.value).replace(/\./g, '');
 		const quantity_payment =+input_quantity_payment.value;
 		if(!quantity_payment){
 			amount_payment='';
 			return;
 		}
-		
-		amount_payment = addThousandSeparator(+((amount*jus_value)/quantity_payment).toFixed(0));
+		amount_payment = addThousandSeparator(+(amount/quantity_payment).toFixed(0));
 	}
 	
 	function verifyPayment(e:Event){
-
 		const input = e.target as HTMLInputElement;
-
-		
 		if(isNaN(+input.value.replace(/\./g, ''))){
 				input.value=addThousandSeparator(+input.value.slice(0,-1));
 				return;
@@ -139,29 +136,34 @@
 </script>
 
 
-	<div class="modal-example-form overflow-y-auto {cBase} {response_state?"w-1/3":"w-3/4"}">
+	<div class="modal-example-form overflow-y-auto {cBase} {response_state?"w-1/3": loading? "w-1/3":"w-3/4"}">
 		{#if !response_state}
 		<header class={cHeader}>Nuevo caso</header>
+		{#if 	loading}
+		<div class="flex flex-row justify-center h-22">
+			<ProgressRadial class="w-14 h-14" />
+		</div>
+		{:else}
 		<form class="modal-form {cForm}" bind:this={case_form} method="POST">
 			<div class="grid grid-cols-2 gap-4">
 
 				<label class="label">
 					<span>Cliente</span>
-					<input class="input" type="text" placeholder="Nombre Cliente" name="clientName" />
+					<input autocomplete="off" class="input" type="text" placeholder="Nombre Cliente" name="clientName" />
 				{#if form?.errors && form?.errors['clientName']}
 				<span class="text-red-600">{form?.errors['clientName']}</span>
 				{/if}
 			</label>
 			<label class="label">
 				<span>Telefono Cliente</span>
-				<input class="input" type="text"  placeholder="Telefono Cliente" name="clientPhone" />
+				<input autocomplete="off" class="input" type="text"  placeholder="Telefono Cliente" name="clientPhone" />
 				{#if form?.errors && form?.errors['clientPhone']}
 				<span class="text-red-600">{form?.errors['clientPhone']}</span>
 				{/if}
 			</label>
 			<label class="label">
 				<span>Observacion</span>
-				<input class="input" type="text" placeholder="Observaciones" name="description"/>
+				<input autocomplete="off" class="input" type="text" placeholder="Observaciones" name="description"/>
 				{#if form?.errors && form?.errors['description']}
 				<span class="text-red-600">{form?.errors['description']}</span>
 				{/if}
@@ -179,7 +181,7 @@
 			</label>
 			<label class="label">
 				<span>Cantidad de JUS</span>
-				<input class="input" bind:this={input_JUS} on:input={onInputTransform} on:input={calculatePayment}
+				<input autocomplete="off" class="input" bind:this={input_JUS} on:input={onInputTransform} on:input={calculatePayment}
 				type="text" placeholder="JUS" name="amount"/>
 				{#if form?.errors && form?.errors['amount']}
 				<span class="text-red-600">{form?.errors['amount']}</span>
@@ -187,18 +189,25 @@
 			</label>
 			<label class="label">
 				<span>Pesos</span>
-				<input class="input" type="text"  bind:this={input_PESOS}  on:input={onInputTransform}  on:input={calculatePayment} placeholder="PESOS" />
+				<input autocomplete="off" class="input" type="text"  bind:this={input_PESOS}  on:input={onInputTransform}  on:input={calculatePayment} placeholder="PESOS" />
 			</label>
 			<label class="label">
 				<span>Cantidad de cuotas</span>
-				<input class="input" type="number" on:input={calculatePayment} bind:this={input_quantity_payment}  placeholder="Cuotas" name="quantity_payment" />
+				<input autocomplete="off" class="input" type="number" on:input={calculatePayment} bind:this={input_quantity_payment}  placeholder="Cuotas" name="quantity_payment" />
 				{#if form?.errors && form?.errors['quantity_payment']}
 				<span class="text-red-600">{form?.errors['quantity_payment']}</span>
 				{/if}
 			</label>
+				<label class="label">
+				<span>Periodicidad</span>
+				<select class="select" name="period">
+					<option value={Timing.SEMANAL}>{Timing.SEMANAL}</option>
+					<option value={Timing.QUINCENAL}>{Timing.QUINCENAL}</option>
+					<option value={Timing.MENSUAL}>{Timing.MENSUAL}</option>
+			</label>
 			<label class="label">
 				<span>Fecha de cobro primer cuota</span>
-				<input class="input" type="date" bind:value={due_date} on:input={calculatePayment}  placeholder="Fecha Cobro" name="due_date" /> 
+				<input autocomplete="off" class="input" type="date" bind:value={due_date} on:input={calculatePayment}  placeholder="Fecha Cobro" name="due_date" /> 
 				{#if form?.errors && form?.errors['due_date']}
 				<span class="text-red-600">{form?.errors['due_date']}</span>
 				{/if}
@@ -209,7 +218,7 @@
 			{#if due_date && isToday}
 			<label class="label" transition:fade>
 				<span>Monto a entregar</span>
-				<input class="input" type="text"  bind:value={amount_payment} on:input={verifyPayment} placeholder="Monto" name="amount_payment" />
+				<input autocomplete="off" class="input" type="text"  bind:value={amount_payment} on:input={verifyPayment} placeholder="Monto" name="amount_payment" />
 				{#if form?.errors && form?.errors['amount_payment']}
 				<span class="text-red-600">{form?.errors['amount_payment']}</span>
 				{/if}
@@ -227,15 +236,13 @@
 			</label>
 			<label class="label" transition:fade>
 				<span>Cobrador</span>
-				<input class="input" type="text" placeholder="Cobrador" name="collector" />
-				{#if form?.errors && form?.errors['collector']}
-				<span class="text-red-600">{form?.errors['collector']}</span>
-				{/if}
+				<input autocomplete="off" class="input" type="text" placeholder="Cobrador" readonly name="collector" value={user.name}/>
 			</label>
 			{/if}
 		</div>
 			<button class="btn variant-filled-success" disabled={due_date&&!verifyDate()} on:click|preventDefault={onFormSubmit}>Guardar</button>
 		</form>
+		{/if}
 		{:else if response_state === 201}
 		<p class="text-green-600 text-center">Caso creado correctamente</p>
 		<div class="flex flex-row justify-center">

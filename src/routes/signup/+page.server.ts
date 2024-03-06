@@ -2,17 +2,24 @@ import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
 import { ZodError } from 'zod';
 import { registerSchema } from './registerSchema';
-import { createUser } from '$lib/user.model';
+import { createUser, getUsers, deleteUser } from '$lib/user.model';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = locals.user;
-	/* if (user?.role !== 'ADMIN') {
+	if (user?.role !== 'ADMIN') {
 		throw redirect(302, '/');
-	} */
+	}
+	try {
+		const users = await getUsers();
+		return { users };
+	} catch (error) {
+		return {
+			message: 'No se pudo obtener los usuarios'
+		};
+	}
 };
-
 export const actions: Actions = {
-	default: async ({ request }) => {
+	create: async ({ request }) => {
 		const formData = Object.fromEntries(await request.formData()) as Record<string, string>;
 
 		try {
@@ -42,5 +49,17 @@ export const actions: Actions = {
 			}
 		}
 		throw redirect(302, '/login');
+	},
+	delete: async ({ request }) => {
+		const formData = Object.fromEntries(await request.formData()) as Record<string, string>;
+		try {
+			const { id } = formData;
+			await deleteUser(parseInt(id));
+			return { id };
+		} catch (error) {
+			return {
+				message: 'No se pudo eliminar al usuario'
+			};
+		}
 	}
 };

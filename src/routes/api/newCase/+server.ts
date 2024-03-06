@@ -24,7 +24,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		due_date,
 		typepayment,
 		collector,
-		type
+		type,
+		period
 	} = data;
 	if (
 		!description ||
@@ -33,14 +34,17 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		!clientPhone ||
 		!quantity_payment ||
 		!due_date ||
-		!type
+		!type ||
+		!period
 	) {
 		return new Response(JSON.stringify({ error: 'Faltan datos' }), { status: 400 });
 	}
-	const amount_payment_float = amount_payment ? amount_payment.split('.').join('') : undefined;
+	const amount_payment_float = amount_payment ? amount_payment.replace('.', '') : undefined;
 	const payments = Array.from({ length: parseInt(quantity_payment) }, (_, i) => {
 		const currentDate = new Date(due_date);
-		currentDate.setMonth(currentDate.getMonth() + i);
+		if (period === 'SEMANAL') currentDate.setDate(currentDate.getDate() + 7 * i);
+		if (period === 'QUINCENAL') currentDate.setDate(currentDate.getDate() + 15 * i);
+		if (period === 'MENSUAL') currentDate.setMonth(currentDate.getMonth() + i);
 		return {
 			payment_number: i + 1,
 			due_date: currentDate,
@@ -48,7 +52,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			collector: collector && i === 0 ? collector : undefined,
 			amount:
 				amount_payment_float && i === 0
-					? +(parseFloat(amount_payment_float) / jus_value).toFixed(1)
+					? +(parseFloat(amount_payment_float) / jus_value).toFixed(2)
 					: undefined,
 			current:
 				(i === 0 && !amount_payment_float) || (i === 1 && amount_payment_float) ? true : false,
@@ -63,10 +67,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		clientPhone,
 		userId: user.id,
 		payments: { create: payments },
-		amount: +parseFloat(amount).toFixed(1),
+		amount: +parseFloat(amount).toFixed(2),
 		restAmount: amount_payment_float
-			? +(parseFloat(amount) - parseFloat(amount_payment_float) / jus_value).toFixed(1)
-			: +parseFloat(amount).toFixed(1)
+			? +(parseFloat(amount) - parseFloat(amount_payment_float) / jus_value).toFixed(2)
+			: +parseFloat(amount).toFixed(2)
 	};
 
 	try {

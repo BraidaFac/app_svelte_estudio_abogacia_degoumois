@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { getModalStore } from '@skeletonlabs/skeleton';
+	import { getModalStore,ProgressRadial } from '@skeletonlabs/skeleton';
 	import { page } from '$app/stores';
 	import { ZodError, ZodObject } from 'zod';
 	import { onMount } from 'svelte';
 	let case_form : HTMLFormElement;
+	let loading=false;
 	let response_state:number |undefined;
 	let form : {errors: Record<string, string|undefined|string[]>};
 	const {jus_value }= $page.data ?? '0';
@@ -22,6 +23,7 @@
 	}
 	async function onFormSubmit() {
 	try{
+		loading = true;
 		const form = new FormData(case_form);
 		const data = Object.fromEntries(form.entries());
 		
@@ -32,10 +34,11 @@
 			},
 			body: JSON.stringify(data),
 		});
-
+		loading = false;
 		response_state = response.status;
 	}
 	catch(error){
+		loading = false;
 		manageError(error);
 	}
 	}
@@ -65,6 +68,11 @@
 	<div class="modal-example-form  {cBase}">
 		{#if !response_state}
 		<header class={cHeader}>Valor JUS</header>
+		{#if loading}
+		<div class="flex flex-row justify-center h-22">
+			<ProgressRadial class="w-14 h-14"/>
+		</div>
+		{:else}
 		<form class="modal-form {cForm}" bind:this={case_form}>
 			<label class="label">
 				<span>Valor JUS</span>
@@ -72,6 +80,7 @@
 			</label>
 			<button class="btn variant-filled-success" on:click={onFormSubmit}>Guardar</button>
 		</form>
+		{/if}
 		{:else if response_state === 200}
 		<div>
 			<p class="text-green-600 text-center">Se modifico el valor correctamente</p>

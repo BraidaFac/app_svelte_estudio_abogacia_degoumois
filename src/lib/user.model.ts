@@ -24,7 +24,7 @@ const createUser = async (password: string, name: string) => {
 			data: {
 				password: await bcrypt.hash(password, 10),
 				name,
-				role: 'ADMIN'
+				role: 'USER'
 			}
 		});
 
@@ -49,7 +49,7 @@ const loginUser = async (name: string, password: string) => {
 
 	if (!user) {
 		return {
-			error: 'Invalid credentials'
+			error: 'Credenciales incorrectas'
 		};
 	}
 
@@ -58,7 +58,7 @@ const loginUser = async (name: string, password: string) => {
 
 	if (!passwordIsValid) {
 		return {
-			error: 'Invalid credentials'
+			error: 'Credenciales incorrectas'
 		};
 	}
 
@@ -74,5 +74,19 @@ const loginUser = async (name: string, password: string) => {
 
 	return { token, jwtUser };
 };
-
-export { createUser, loginUser };
+const getUsers = async () => {
+	const users = await db.user.findMany();
+	return users;
+};
+const deleteUser = async (id: number) => {
+	const user = await db.user.findUnique({
+		where: { id }
+	});
+	if (!user) {
+		throw new Error('User not found');
+	}
+	await db.user.delete({
+		where: { id }
+	});
+};
+export { createUser, loginUser, getUsers, deleteUser };

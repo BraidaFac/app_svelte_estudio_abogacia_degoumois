@@ -46,27 +46,28 @@ function formatear(fechaISO:Date) {
         <div class={cDiv}>
             <ul class="list">
                 {#each payments as p }
-                <li class="flex flex-row justify-between">
-                    <span >Cuota numero {p.payment_number}</span>
-                    <span>Fecha {p.due_date}</span>
+                <li class="grid grid-cols-4 gap-16 justify-between text-center">
+                    <span class="col-span-1 w-1/4">Cuota numero {p.payment_number}</span>
+                    <span class="col-span-1 w-1/4">Fecha {p.due_date}</span>
                     {#if p.collector}
-                    <span>Cobrador {p.collector}</span>
+                    <span class="col-span-1 w-1/4">Cobrador {p.collector}</span>
                     {:else}
-                    <span class="w-32 "></span>
-                    {/if}
+                    <span class="col-span-1 w-1/4"></span>
+                     {/if}
                     {#if p.current}
-                    <button class="btn variant-filled-success w-24" on:click={()=>{
-                        modalStore.close()
-                        modalStore.trigger(modalToPay)}}>Cobrar
+                    <span class="col-span-1 w-1/4">
+                        <button class="btn variant-filled-success h-6" on:click={()=>{
+                            modalStore.close()
+                            modalStore.trigger(modalToPay)}}>Cobrar
                     </button>
+                 </span>
                     {:else}
-                    <div class="h-10 w-24 text-center ">
                         {#if p.payment_date}
-                        <span>{p.amount.toString().replace(/\./,',')} JUS</span>
+                        <span class="col-span-1 w-1/4">{p.amount.toString().replace(/\./,',')} JUS</span>
+                        {:else}
+                        <span class="col-span-1 w-1/4"></span>
                         {/if}
-                    </div>
                     {/if}
-
                 </li>
                 {/each}
             </ul>

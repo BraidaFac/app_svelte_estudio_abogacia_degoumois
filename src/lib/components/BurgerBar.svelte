@@ -34,7 +34,6 @@
 
 </script>
 <div class="burger relative float-right">
-	{#if user.role ==="ADMIN"}
 	<div class="relative inline-block text-left">
 		<div>
 		  <button on:click={() => action_flag = !action_flag}
@@ -49,19 +48,20 @@
 				modalStore.trigger(modal)}} class="text-gray-700 block px-4 py-2 text-sm" role="menuitem" tabindex="-1" id="menu-item-1">Nuevo caso</a>
 			<a href="/" on:click|preventDefault={() => {action_flag = !action_flag;
 			modalStore.trigger(modalJus)}} class="text-gray-700 block px-4 py-2 text-sm" role="menuitem" tabindex="-1" id="menu-item-1">JUS</a>
-    		<form method="POST" action="/logout"role="none">
-			  <button type="submit" class="text-gray-700 block w-full px-4 py-2 text-left text-sm" role="menuitem" tabindex="-1" id="menu-item-3">Sign out</button>
+			{#if user.role === 'ADMIN'}
+			<a href="/signup"  class="text-gray-700 block px-4 py-2 text-sm" role="menuitem" tabindex="-1" id="menu-item-1">Alta Usuario</a>
+			{/if}
+    		<form method="POST" action="/logout">
+			  <button on:click={(e)=>{
+											action_flag = !action_flag;
+											e.target.form.submit();
+										
+
+				}} class="text-gray-700 block w-full px-4 py-2 text-left text-sm" role="menuitem" tabindex="-1" id="menu-item-3">Sign out</button>
 			</form>
 		  </div>
 		</div>
 		{/if}
 	  </div>
-	{:else}
-	<form method="post"> 
-		<button class="btn-icon	" type="submit" formaction="/logout">
-            Salir
-		</button>
-	</form>
-	{/if}
 </div>
 

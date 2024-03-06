@@ -17,7 +17,6 @@ function formatear(fechaISO) {
 }
 export const load: PageServerLoad = async ({ locals, depends }) => {
 	depends('update:cases');
-	console.log('locals');
 	const user = locals.user;
 	if (!user) {
 		throw redirect(302, '/login');
