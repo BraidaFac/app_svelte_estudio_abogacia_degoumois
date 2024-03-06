@@ -27,6 +27,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		type,
 		period
 	} = data;
+
 	if (
 		!description ||
 		!amount ||
@@ -67,10 +68,13 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		clientPhone,
 		userId: user.id,
 		payments: { create: payments },
-		amount: +parseFloat(amount).toFixed(2),
+		amount: +amount.replace(',', '.'),
 		restAmount: amount_payment_float
-			? +(parseFloat(amount) - parseFloat(amount_payment_float) / jus_value).toFixed(2)
-			: +parseFloat(amount).toFixed(2)
+			? +(
+					parseFloat(amount.replace(',', '.')) -
+					parseFloat(amount_payment_float) / jus_value
+				).toFixed(2)
+			: +parseFloat(amount.replace(',', '.')).toFixed(2)
 	};
 
 	try {

@@ -141,7 +141,7 @@
 		<header class={cHeader}>Nuevo caso</header>
 		{#if 	loading}
 		<div class="flex flex-row justify-center h-22">
-			<ProgressRadial class="w-14 h-14" />
+			<ProgressRadial width="w-14"  />
 		</div>
 		{:else}
 		<form class="modal-form {cForm}" bind:this={case_form} method="POST">
