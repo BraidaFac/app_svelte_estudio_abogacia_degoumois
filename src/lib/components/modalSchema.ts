@@ -12,11 +12,14 @@ export const modalSchema = z.object({
 		.trim(),
 	description: z
 		.string({ required_error: 'Ingrese descripcion' })
-		.min(1, { message: 'Ingrese decripcion' }),
-	amount: z.string({ required_error: 'Ingrese monto' }).min(1, { message: 'Ingrese monto' }),
+		.min(1, { message: 'Ingrese decripcion' })
+		.trim(),
+	amount: z.string({ required_error: 'Ingrese monto' }).min(1, { message: 'Ingrese monto' }).trim(),
 	quantity_payment: z
 		.string({ required_error: 'Ingrese cantidad de cuotas' })
-		.min(1, { message: 'Ingrese cantidad de cuotas' }),
+		.refine((value) => parseInt(value, 10) > 0, {
+			message: 'La cantidad de cuotas debe ser mayor a 0'
+		}),
 	due_date: z
 		.string({ required_error: 'Ingrese fecha de vencimiento' })
 		.min(1, { message: 'Ingrese fecha de cobro' }),

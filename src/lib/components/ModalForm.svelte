@@ -53,6 +53,7 @@
 		loading = true;
 		const form = new FormData(case_form);
 		const data = Object.fromEntries(form.entries());
+		
 		validateOrThrow(data,modalSchema);
 		const response = await fetch('/api/newCase', {
 			method: 'POST',
@@ -100,7 +101,11 @@
 		
 	}
 
-	function calculatePayment(){
+	function calculatePayment(event:Event){
+		if(event?.target?.value<0){
+			amount_payment='0';
+			return;
+		}
 		const amount = +(input_PESOS.value).replace(/\./g, '');
 		const quantity_payment =+input_quantity_payment.value;
 		if(!quantity_payment){

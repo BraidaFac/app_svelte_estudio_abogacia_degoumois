@@ -44,7 +44,7 @@ const modalDetalle: ModalSettings = {
 	
 	
 	function verifyDate(date: string) {
-		const [day, month, year] = date.split('/');
+		const [day, month, year] = date.split('-');
 		const dateNow = new Date();
 		dateNow.setHours(-3,0,0,0);
 		const caseDate = new Date(`${year}-${month}-${day}`);

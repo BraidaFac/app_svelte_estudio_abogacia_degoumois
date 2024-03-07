@@ -47,18 +47,17 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 				dueDate: c.payments.find((p) => p.current)?.due_date
 			};
 		});
+		cases.sort((a, b) => {
+			const dateA = a.payments.find((p) => p.current)?.due_date;
+			const dateB = b.payments.find((p) => p.current)?.due_date;
+			return dateA.getTime() - dateB.getTime();
+		});
+		cases = cases.map((c) => {
+			return {
+				...c,
+				dueDate: formatear(c.dueDate.toISOString())
+			};
+		});
 	}
-	cases.sort((a, b) => {
-		const dateA = a.payments.find((p) => p.current)?.due_date;
-		const dateB = b.payments.find((p) => p.current)?.due_date;
-		return dateA.getTime() - dateB.getTime();
-	});
-	cases = cases.map((c) => {
-		return {
-			...c,
-			dueDate: formatear(c.dueDate.toISOString())
-		};
-	});
-
 	return { user, cases };
 };
