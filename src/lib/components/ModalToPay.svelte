@@ -115,7 +115,7 @@
 		let amountToPay= caso.restAmount;
 		let amountJus;
 		if(quantityPaymentToPay === 1) {
-			amountJus = amountToPay.toFixed2(3);
+			amountJus = amountToPay.toFixed(3);
 		}
 		else{
 			amountJus = ((amountToPay / quantityPaymentToPay)).toFixed(3);
