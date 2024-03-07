@@ -164,7 +164,7 @@
 			</label>
 			<label class="label">
 				<span>Adeuda JUS</span>
-				<input autocomplete="off" class="input" readonly  style="color:red"type="text" value={`${caso.restAmount.toFixed(2).replace('\.',',')}`}/>
+				<input autocomplete="off" class="input" readonly  style="color:red"type="text" value={`${caso.restAmount.toFixed(3).replace('\.',',')}`}/>
 			</label>
 			<label class="label">
 				<span>Cantidad de JUS</span>
