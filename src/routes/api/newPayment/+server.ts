@@ -23,7 +23,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 
 	try {
 		const response = await createPayment(+caseId, {
-			amount: +(+amount.replace(',', '.')).toFixed(2),
+			amount: +(+amount.replace(',', '.')).toFixed(3),
 			typepayment: typepayment as PaymentType,
 			paymentNumber: +paymentNumber,
 			collector

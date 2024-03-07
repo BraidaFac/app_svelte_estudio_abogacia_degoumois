@@ -94,7 +94,7 @@
 				break;
 			case input_PESOS:
 				input_PESOS.value = addThousandSeparator(+value);
-				input_JUS.value =(value /jus_value).toFixed(2).replace(/\./,',');
+				input_JUS.value =(value /jus_value).toFixed(3).replace(/\./,',');
 				break;
 		}
 		
@@ -175,9 +175,6 @@
 					<option value={type}>{type}</option>
 					{/each}
 				</select>
-				{#if form?.errors && form?.errors['description']}
-				<span class="text-red-600">{form?.errors['description']}</span>
-				{/if}
 			</label>
 			<label class="label">
 				<span>Cantidad de JUS</span>

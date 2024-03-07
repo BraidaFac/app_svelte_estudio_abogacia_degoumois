@@ -53,7 +53,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			collector: collector && i === 0 ? collector : undefined,
 			amount:
 				amount_payment_float && i === 0
-					? +(parseFloat(amount_payment_float) / jus_value).toFixed(2)
+					? +(parseFloat(amount_payment_float) / jus_value).toFixed(3)
 					: undefined,
 			current:
 				(i === 0 && !amount_payment_float) || (i === 1 && amount_payment_float) ? true : false,
@@ -73,8 +73,8 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			? +(
 					parseFloat(amount.replace(',', '.')) -
 					parseFloat(amount_payment_float) / jus_value
-				).toFixed(2)
-			: +parseFloat(amount.replace(',', '.')).toFixed(2)
+				).toFixed(3)
+			: +parseFloat(amount.replace(',', '.')).toFixed(3)
 	};
 
 	try {

@@ -70,7 +70,7 @@
 			return;
 		}
 		if(caso.quantityPaymentsToPay === 1){
-			input_JUS.value = caso.restAmount.toFixed(1).replace(/\./,',');
+			input_JUS.value = caso.restAmount.toFixed(3).replace(/\./,',');
 			input_PESOS.value = addThousandSeparator(+(+caso.restAmount * jus_value).toFixed(0));
 			return;
 		}
@@ -84,7 +84,7 @@
 				input_PESOS.value = addThousandSeparator(+(value * jus_value).toFixed(0));
 				break;
 			case input_PESOS:
-				input_JUS.value =(value /jus_value).toFixed(2).replace(/\./,',');
+				input_JUS.value =(value /jus_value).toFixed(3).replace(/\./,',');
 				break;
 		}
 		
@@ -94,13 +94,13 @@
 		if(e.target===input_JUS){
 			const amount = +(input_JUS.value.replace(/\./g,','));	
 			if(amount>caso.restAmount){
-				input_JUS.value = (caso.restAmount.toFixed(2)).replace(/\./g,',');
+				input_JUS.value = (caso.restAmount.toFixed(3)).replace(/\./g,',');
 				input_PESOS.value = addThousandSeparator(+(+caso.restAmount * jus_value).toFixed(0));
 			}
 		}
 		else{
 			const amount_pesos = input_PESOS.value.replace(/\./g,'');		
-			if(+(+amount_pesos/jus_value).toFixed(2) > +(caso.restAmount).toFixed(2)){
+			if(+(+amount_pesos/jus_value).toFixed(3) > +(caso.restAmount).toFixed(3)){
 				input_PESOS.value = (caso.restAmount * jus_value).toFixed(0);
 			}
 		}
@@ -115,10 +115,10 @@
 		let amountToPay= caso.restAmount;
 		let amountJus;
 		if(quantityPaymentToPay === 1) {
-			amountJus = amountToPay.toFixed(2);
+			amountJus = amountToPay.toFixed2(3);
 		}
 		else{
-			amountJus = ((amountToPay / quantityPaymentToPay)).toFixed(2);
+			amountJus = ((amountToPay / quantityPaymentToPay)).toFixed(3);
 
 		}
 		input_JUS.value = amountJus.replace(/\./,',');
