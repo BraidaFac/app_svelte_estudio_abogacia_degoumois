@@ -180,7 +180,7 @@ export const deleteOldCases = async () => {
 				restAmount: {
 					lte: 0
 				},
-				id: 60
+				id: 61
 			}
 		});
 		return true;
