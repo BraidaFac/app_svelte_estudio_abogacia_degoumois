@@ -179,8 +179,7 @@ export const deleteOldCases = async () => {
 			where: {
 				restAmount: {
 					lte: 0
-				},
-				id: 61
+				}
 			}
 		});
 		return true;
