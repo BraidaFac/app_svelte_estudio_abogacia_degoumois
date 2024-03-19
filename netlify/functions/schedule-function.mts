@@ -1,5 +1,5 @@
 import type { Config } from '@netlify/functions';
-import { deleteOldCases } from '../../lib/case.model';
+import { deleteOldCases } from '../../src/lib/case.model';
 
 export default async () => {
 	await deleteOldCases();
