@@ -45,6 +45,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@netlify/functions": "^2.6.0",
 		"@prisma/client": "^5.10.2",
 		"bcryptjs": "^2.4.3",
 		"date-fns": "^3.3.1",

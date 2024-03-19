@@ -172,3 +172,19 @@ export const getOnTimeCases = async () => {
 	});
 	return onTimeCases;
 };
+
+export const deleteOldCases = async () => {
+	try {
+		await db.cases.deleteMany({
+			where: {
+				restAmount: {
+					lte: 0
+				}
+			}
+		});
+		return true;
+	} catch (error) {
+		console.log('error', error);
+		return undefined;
+	}
+};
