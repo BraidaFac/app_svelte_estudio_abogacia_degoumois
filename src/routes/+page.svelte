@@ -25,6 +25,9 @@ $:{
 <a  href="/vencido" class="card p-4 card-hover "><section class="p-4"><p class="text-3xl  text-red-600 text-center">Cuotas vencidas</p></section></a>
 <a href="/proximo" class="card p-4 card-hover"><section class="p-4"><p class="text-3xl text-yellow-500 text-center">Proximos vencimientos</p></section></a>
 <a href="/atiempo" class="card p-4 card-hover"><section class="p-4"><p class="text-3xl text-green-600 text-center"> Cuotas al dia</p></section></a>
+<form method="POST">
+	<button type="submit">try</button>
+</form>
 </div>
 {#key cases}
 <CasesContainer  cases={cases}/>

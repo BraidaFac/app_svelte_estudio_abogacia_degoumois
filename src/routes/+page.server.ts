@@ -1,6 +1,6 @@
-import { redirect } from '@sveltejs/kit';
+import { redirect, type Action, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getCasesWithDebt } from '$lib/case.model';
+import { deleteOldCases, getCasesWithDebt } from '$lib/case.model';
 
 type Cases = {
 	id: number;
@@ -63,4 +63,13 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 		});
 	}
 	return { user, cases };
+};
+
+export const actions: Actions = {
+	default: async () => {
+		if (await deleteOldCases()) {
+			return { status: 200, body: 'ok' };
+		}
+		return { status: 500, body: 'error' };
+	}
 };

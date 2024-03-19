@@ -37,7 +37,7 @@ model Payment{
   due_date    DateTime
   payment_date DateTime?
   caseId      Int 
-  case        Cases     @relation(fields: [caseId], references: [id])
+  case        Cases     @relation(fields: [caseId], references: [id], onDelete: Cascade)
   typepayment PaymentType?
   amount      Float?
   current     Boolean
