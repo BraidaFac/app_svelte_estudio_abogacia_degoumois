@@ -172,3 +172,11 @@ export const getOnTimeCases = async () => {
 	});
 	return onTimeCases;
 };
+export const deleteCase = async (caseId: number) => {
+	const caso = await db.cases.delete({
+		where: {
+			id: caseId
+		}
+	});
+	return caso;
+};
