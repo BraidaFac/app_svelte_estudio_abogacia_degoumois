@@ -120,6 +120,11 @@ export const getCasesWithDebt = async () => {
 export const getCases = async () => {
 	try {
 		const cases = await db.cases.findMany({
+			where:{
+				restAmount:{
+					equals:0
+				}
+			},
 			include: {
 				payments: true
 			}

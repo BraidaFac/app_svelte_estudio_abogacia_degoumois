@@ -95,7 +95,7 @@
 				<th class="text-center">Tipo caso</th>
 				<th class="text-center">Nombre cliente</th>
 				<th class="text-center">Telefono cliente</th>
-				<th class="text-center">Monto a saldar</th>
+				<th class="text-center">Monto a saldado</th>
 				<th class="text-center">Creado</th>
 				<th class="text-center">Detalles</th>
 				<th class="text-center">Eliminar</th>
@@ -113,11 +113,7 @@
 						<td>{caso.type}</td>
 						<td>{caso.clientName}</td>
 						<td>{caso.clientPhone}</td>
-						<td
-							>{caso.restAmount !== 0
-								? `${caso.restAmount.toString().replace(/\./, ',')} JUS`
-								: 'PAGADO'}
-						</td>
+						<td>{caso.amount} JUS</td>
 						<td>{caso.created}</td>
 						<td>
 							<button
