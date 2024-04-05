@@ -87,7 +87,7 @@
 	>
 {/if}
 <section class="p-3">
-	<p class="my-4 rounded-md text-center text-3xl">Historial</p>
+	<p class="my-4 rounded-md text-center text-3xl">Historial de cancelación total</p>
 	<table class="table table-interactive text-center">
 		<thead>
 			<tr>
@@ -95,7 +95,7 @@
 				<th class="text-center">Tipo caso</th>
 				<th class="text-center">Nombre cliente</th>
 				<th class="text-center">Telefono cliente</th>
-				<th class="text-center">Monto a saldado</th>
+				<th class="text-center">Monto saldado</th>
 				<th class="text-center">Creado</th>
 				<th class="text-center">Detalles</th>
 				<th class="text-center">Eliminar</th>
