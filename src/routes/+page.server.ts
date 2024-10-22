@@ -45,7 +45,7 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 	if (!user) {
 		throw redirect(302, '/login');
 	}
-	let cases: Cases[] = await getCasesWithDebt();
+	let cases: any[] = await getCasesWithDebt();
 
 	if (cases.length > 0) {
 		cases = cases.map((c) => {
@@ -61,6 +61,11 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 			if (a.dueDate === undefined || b.dueDate === undefined) return 0;
 			return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
 		});
+
+		cases = cases.map((caso) => ({
+			...caso,
+			searchTerms: `${caso.description} ${caso.type} ${caso.clientName}`
+		}));
 	}
 	return { user, cases };
 };
