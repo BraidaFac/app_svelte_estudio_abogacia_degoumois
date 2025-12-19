@@ -1,17 +1,5 @@
 <script lang="ts">
 	import CasesContainer from '$lib/components/CasesContainer.svelte';
-	import type { Cases } from '@prisma/client/edge';
-	import { getModalStore, type ModalSettings } from '@skeletonlabs/skeleton';
-	const modalStore = getModalStore();
-	const modal: ModalSettings = {
-		type: 'component',
-		component: 'modal'
-	};
-	const modalToPay: ModalSettings = {
-		type: 'component',
-		component: 'modalToPay',
-		meta: {}
-	};
 	export let data;
 	let cases: any[];
 

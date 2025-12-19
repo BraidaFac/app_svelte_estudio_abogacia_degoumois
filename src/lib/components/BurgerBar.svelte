@@ -1,7 +1,9 @@
 <script lang="ts">
+	import type { Role } from '@prisma/client';
 	import { getModalStore, type ModalSettings } from '@skeletonlabs/skeleton';
 	import { onMount } from 'svelte';
-	export let user: any;
+
+	export let user: { id: number; name: string; role: Role };
 
 	onMount(() => {
 		let body = document.querySelector('body');
@@ -17,17 +19,14 @@
 		type: 'component',
 		component: 'modal'
 	};
-	const modalToPay: ModalSettings = {
-		type: 'component',
-		component: 'modalToPay',
-		meta: {}
-	};
-	const modalJus: ModalSettings = {
+
+	const 	modalJus: ModalSettings = {
 		type: 'component',
 		component: 'modalJus'
 	};
 
-	$: action_flag = false;
+	let action_flag = false;
+	let logoutForm: HTMLFormElement;
 </script>
 
 <div class="burger relative float-right">
@@ -59,7 +58,7 @@
 							action_flag = !action_flag;
 							modalStore.trigger(modal);
 						}}
-						class="block px-4 py-2 text-sm text-gray-700"
+						class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
 						role="menuitem"
 						tabindex="-1"
 						id="menu-item-1">Nuevo caso</a
@@ -70,7 +69,7 @@
 							action_flag = !action_flag;
 							modalStore.trigger(modalJus);
 						}}
-						class="block px-4 py-2 text-sm text-gray-700"
+						class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
 						role="menuitem"
 						tabindex="-1"
 						id="menu-item-1">JUS</a
@@ -78,26 +77,26 @@
 					{#if user.role === 'ADMIN'}
 						<a
 							href="/signup"
-							class="block px-4 py-2 text-sm text-gray-700"
+							class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
 							role="menuitem"
 							tabindex="-1"
 							id="menu-item-1">Alta Usuario</a
 						>
 						<a
 							href="/historial"
-							class="block px-4 py-2 text-sm text-gray-700"
+							class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
 							role="menuitem"
 							tabindex="-1"
 							id="menu-item-1">Historial</a
 						>
 					{/if}
-					<form method="POST" action="/logout">
+					<form method="POST" action="/logout" bind:this={logoutForm}>
 						<button
-							on:click={(e) => {
+							on:click={() => {
 								action_flag = !action_flag;
-								e.target.form.submit();
+								logoutForm?.submit();
 							}}
-							class="block w-full px-4 py-2 text-left text-sm text-gray-700"
+							class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
 							role="menuitem"
 							tabindex="-1"
 							id="menu-item-3">Sign out</button

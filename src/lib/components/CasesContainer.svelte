@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { createSearchStore, filterStore, searchHandler } from '$lib/stores/filter';
+	import type { FormattedCase } from '$lib/types/case.types';
 	import { getModalStore, type ModalSettings } from '@skeletonlabs/skeleton';
 	import { differenceInHours } from 'date-fns';
 	import { onDestroy } from 'svelte';
-	export let cases;
+
+	export let cases: FormattedCase[];
 
 	const modalStore = getModalStore();
 
@@ -20,19 +22,21 @@
 
 	const searchStore = createSearchStore(cases);
 
-	const unsubscribe = searchStore.subscribe((model: any) => searchHandler(model));
+	const unsubscribe = searchStore.subscribe((model) => searchHandler(model));
 
 	onDestroy(() => {
 		unsubscribe();
 	});
 
-	// Crear el store de búsqueda
 	// Sincronizar el valor de `filterStore` con `searchStore.search`
 	$: $searchStore.search = $filterStore;
 
-	function verifyDate(date: string | number | undefined) {
-		if (typeof date !== 'string' || !/^\d{2}-\d{2}-\d{4}$/.test(date) || !date) {
-			return;
+	// Casos filtrados con tipo correcto
+	$: filteredCases = $searchStore.filtered as unknown as FormattedCase[];
+
+	function verifyDate(date: string | undefined): string | undefined {
+		if (typeof date !== 'string' || !/^\d{2}-\d{2}-\d{4}$/.test(date)) {
+			return undefined;
 		}
 		const [day, month, year] = date.split('-').map(Number);
 		const dateNow = new Date();
@@ -54,7 +58,7 @@
 	<input type="search" class="input" placeholder="Buscar" bind:value={$filterStore} />
 </div>
 <div class="table-container p-2 md:p-4">
-	{#if $searchStore.filtered.length !== 0}
+	{#if filteredCases.length !== 0}
 		<table class="table table-interactive text-center">
 			<thead>
 				<tr>
@@ -68,13 +72,13 @@
 					<th class="text-center">Acciones</th>
 				</tr>
 			</thead>
-			<tbody
-				>{#if $searchStore.filtered.length === 0}
+			<tbody>
+				{#if filteredCases.length === 0}
 					<tr>
 						<td colspan="7">No existen</td>
 					</tr>
 				{:else}
-					{#each $searchStore.filtered as caso}
+					{#each filteredCases as caso (caso.id)}
 						<tr class={verifyDate(caso.dueDate)}>
 							<td>{caso.description}</td>
 							<td>{caso.type}</td>
@@ -108,7 +112,6 @@
 		</table>
 	{/if}
 </div>
-``
 
 <style>
 	.table tbody .overdue {

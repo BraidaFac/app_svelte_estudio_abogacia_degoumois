@@ -1,3 +1,7 @@
+/**
+ * Schema de validación para registro de usuarios
+ */
+
 import { z } from 'zod';
 
 export const registerSchema = z
@@ -7,11 +11,13 @@ export const registerSchema = z
 			.min(1, { message: 'Ingrese su nombre' })
 			.max(50, { message: 'Ingrese hasta 50 caracteres' })
 			.trim(),
+
 		password: z
 			.string({ required_error: 'Ingrese su contraseña' })
 			.min(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
 			.max(20, { message: 'La contraseña puede tener hasta 20 caracteres' })
 			.trim(),
+
 		confirmPassword: z
 			.string({ required_error: 'Confirme su contraseña' })
 			.min(6, { message: 'La contraseña debe tener al menos 6 caracteres' })
@@ -27,3 +33,5 @@ export const registerSchema = z
 			});
 		}
 	});
+
+export type RegisterSchemaType = z.infer<typeof registerSchema>;

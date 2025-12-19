@@ -1,5 +1,6 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 
-const db = new PrismaClient();
+const prisma = new PrismaClient();
 
-export { db };
+export { prisma as db };

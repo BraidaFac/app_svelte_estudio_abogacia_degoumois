@@ -1,56 +1,65 @@
+/**
+ * Store para filtrado y búsqueda de casos
+ * Implementa patrón de búsqueda reactiva
+ */
+
 import { writable } from 'svelte/store';
 
-export interface SearchStoreModel<T extends Record<PropertyKey, string | number>> {
+// ============================================
+// TYPES
+// ============================================
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type SearchableItem = Record<string, any> & {
+	searchTerms?: string;
+};
+
+export interface SearchStoreModel<T extends SearchableItem> {
 	data: T[];
 	filtered: T[];
-	search: string | undefined;
-	rubro?: string;
-	descripcion?: string;
-	marca?: string;
+	search: string;
 }
 
-// Store para el filtro (búsqueda)
+// ============================================
+// STORES
+// ============================================
+
+/**
+ * Store global para el término de búsqueda
+ */
 export const filterStore = writable('');
 
-// Crear store de búsqueda
-export const createSearchStore = <T extends Record<PropertyKey, string | number>>(data: T[]) => {
+/**
+ * Crea un store de búsqueda para una colección de datos
+ * @param data - Datos iniciales a filtrar
+ * @returns Store con funcionalidad de búsqueda
+ */
+export function createSearchStore<T extends SearchableItem>(data: T[]) {
 	const { subscribe, set, update } = writable<SearchStoreModel<T>>({
-		data: data,
+		data,
 		filtered: data,
-		search: '',
-		rubro: '',
-		marca: ''
+		search: ''
 	});
 
-	return {
-		subscribe,
-		set,
-		update
-	};
-};
+	return { subscribe, set, update };
+}
 
-// Manejador de búsqueda
-export const searchHandler = <T extends Record<PropertyKey, string | number>>(
-	store: SearchStoreModel<T>
-) => {
-	const searchTerm: string | undefined = store.search?.toLowerCase();
+/**
+ * Manejador de búsqueda que filtra los datos
+ * @param store - Estado actual del store de búsqueda
+ */
+export function searchHandler<T extends SearchableItem>(store: SearchStoreModel<T>): void {
+	const searchTerm = store.search?.toLowerCase().trim();
 
-	if (searchTerm) {
-		const filterSearchSplited = searchTerm.split(' ');
-		store.filtered = store.data.filter((item) => {
-			let counter = 0;
-			filterSearchSplited.forEach((word) => {
-				// Supongo que tienes una propiedad `searchTerms` en el objeto `item`
-				if (item.searchTerms?.toString().toLowerCase().includes(word)) {
-					counter++;
-				}
-			});
-
-			// Filtrar solo si todas las palabras coinciden
-			return counter === filterSearchSplited.length;
-		});
-	} else {
-		// Si no hay búsqueda, restaurar todos los datos
+	if (!searchTerm) {
 		store.filtered = [];
+		return;
 	}
-};
+
+	const searchWords = searchTerm.split(/\s+/);
+
+	store.filtered = store.data.filter((item) => {
+		const itemSearchTerms = item.searchTerms?.toString().toLowerCase() ?? '';
+		return searchWords.every((word) => itemSearchTerms.includes(word));
+	});
+}

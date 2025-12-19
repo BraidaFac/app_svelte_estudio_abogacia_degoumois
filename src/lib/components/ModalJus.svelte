@@ -1,13 +1,14 @@
 <script lang="ts">
-	import { getModalStore,ProgressRadial } from '@skeletonlabs/skeleton';
-	import { page } from '$app/stores';
-	import { ZodError, ZodObject } from 'zod';
+	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
+	import { getModalStore, ProgressRadial } from '@skeletonlabs/skeleton';
 	import { onMount } from 'svelte';
+	import { ZodError, ZodObject } from 'zod';
 	let case_form : HTMLFormElement;
 	let loading=false;
 	let response_state:number |undefined;
 	let form : {errors: Record<string, string|undefined|string[]>};
-	const {jus_value }= $page.data ?? '0';
+	const {jus_value }= page.data ?? '0';
 	const modalStore = getModalStore();
 	 function validateOrThrow(obj: Object, schema:ZodObject<any, any>) {
     	schema.parse(obj);
@@ -36,6 +37,10 @@
 		});
 		loading = false;
 		response_state = response.status;
+
+		if(response_state==200){
+			await invalidateAll();
+		}
 	}
 	catch(error){
 		loading = false;

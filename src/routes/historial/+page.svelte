@@ -1,16 +1,10 @@
 <script lang="ts">
-	import { getModalStore, type ModalSettings } from '@skeletonlabs/skeleton';
-	import { page } from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
+	import { getModalStore, type ModalSettings } from '@skeletonlabs/skeleton';
 	import { onMount } from 'svelte';
 	const modalStore = getModalStore();
 	let previousModalValue: ModalSettings | undefined = $modalStore[0];
 	let activeBtn = false;
-	const modalToPay: ModalSettings = {
-		type: 'component',
-		component: 'modalToPay',
-		meta: {}
-	};
 	const modalDetalle: ModalSettings = {
 		type: 'component',
 		component: 'modalDetalle',
@@ -18,13 +12,15 @@
 	};
 
 	const modalAlert: ModalSettings = {
-		type: 'alert'
+		type: 'alert',
+		modalClasses: 'p-6'
 	};
 	const modalConfirm: ModalSettings = {
 		type: 'confirm',
 		title: 'Confirmar acción',
 		body: 'Estas seguro de eliminar el caso?',
 		meta: {},
+		modalClasses: 'p-6',
 		// TRUE if confirm pressed, FALSE if cancel pressed
 		response: async (r: boolean) => {
 			if (r) {

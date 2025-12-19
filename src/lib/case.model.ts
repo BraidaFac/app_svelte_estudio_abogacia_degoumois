@@ -1,187 +1,242 @@
-import type { PaymentType } from '@prisma/client';
-import { db } from './db';
-import { differenceInDays } from 'date-fns';
-export const saveCase = async (data: any) => {
-	const caso = await db.cases.create({
-		data
-	});
-	return caso;
-};
+/**
+ * Modelo para operaciones CRUD de casos legales
+ * Implementa principios SOLID y tipado estricto
+ */
 
-export const createPayment = async (
-	caseId: number,
-	data: { amount: number; typepayment: PaymentType; paymentNumber: number; collector: string }
-) => {
-	const { amount, typepayment, paymentNumber, collector } = data;
+import type { PaymentType } from '@prisma/client';
+import { differenceInDays } from 'date-fns';
+import { db } from './db';
+import type { CaseWithPayments, CreateCaseData, RegisterPaymentData } from './types/case.types';
+
+// ============================================
+// CREATE OPERATIONS
+// ============================================
+
+/**
+ * Guarda un nuevo caso en la base de datos
+ * @param data - Datos del caso a crear
+ * @returns El caso creado
+ */
+export async function saveCase(data: CreateCaseData) {
+	return db.cases.create({ data });
+}
+
+/**
+ * Registra un pago para un caso existente
+ * @param caseId - ID del caso
+ * @param paymentData - Datos del pago
+ * @returns El caso actualizado
+ */
+export async function createPayment(caseId: number, paymentData: RegisterPaymentData) {
+	const { amount, typepayment, paymentNumber, collector } = paymentData;
 	const today = new Date();
 
 	const caso = await db.cases.findUnique({
-		where: {
-			id: caseId
-		},
-		include: {
-			payments: true
-		}
+		where: { id: caseId },
+		include: { payments: true }
 	});
+
 	if (!caso) {
 		throw new Error('Caso no encontrado');
 	}
-	const restAmount = +(caso.restAmount - amount).toFixed(3);
-	const quantity_payment = caso.payments.length;
-	if (paymentNumber < quantity_payment) {
-		const [, , casoUpdated] = await db.$transaction([
-			db.payment.update({
-				where: {
-					payment_number_caseId: {
-						payment_number: paymentNumber,
-						caseId
-					}
-				},
-				data: {
-					amount,
-					typepayment,
-					payment_date: today,
-					current: false,
-					collector
-				}
-			}),
-			db.payment.update({
-				where: {
-					payment_number_caseId: {
-						payment_number: paymentNumber + 1,
-						caseId
-					}
-				},
-				data: {
-					current: true
-				}
-			}),
-			db.cases.update({
-				where: {
-					id: caseId
-				},
-				data: {
-					restAmount: restAmount,
-					updatedAt: today
-				}
-			})
-		]);
-		return casoUpdated;
-	} else {
-		const [, casoUpdated] = await db.$transaction([
-			db.payment.update({
-				where: {
-					payment_number_caseId: {
-						payment_number: paymentNumber,
-						caseId
-					}
-				},
-				data: {
-					amount,
-					typepayment,
-					payment_date: today,
-					current: false,
-					collector
-				}
-			}),
-			db.cases.update({
-				where: {
-					id: caseId
-				},
-				data: {
-					restAmount: restAmount,
-					updatedAt: today
-				}
-			})
-		]);
-		return casoUpdated;
+
+	const restAmount = Number((caso.restAmount - amount).toFixed(3));
+	const totalPayments = caso.payments.length;
+	const hasNextPayment = paymentNumber < totalPayments;
+
+	if (hasNextPayment) {
+		return updatePaymentWithNext(
+			caseId,
+			paymentNumber,
+			amount,
+			typepayment,
+			collector,
+			restAmount,
+			today
+		);
 	}
-};
 
-export const getCasesWithDebt = async () => {
+	return updateFinalPayment(
+		caseId,
+		paymentNumber,
+		amount,
+		typepayment,
+		collector,
+		restAmount,
+		today
+	);
+}
+
+// ============================================
+// READ OPERATIONS
+// ============================================
+
+/**
+ * Obtiene todos los casos con deuda pendiente
+ * @returns Lista de casos con restAmount > 0
+ */
+export async function getCasesWithDebt(): Promise<CaseWithPayments[]> {
 	try {
-		const cases = await db.cases.findMany({
-			where: {
-				restAmount: {
-					gt: 0
-				}
-			},
-			include: {
-				payments: true
-			}
+		return db.cases.findMany({
+			where: { restAmount: { gt: 0 } },
+			include: { payments: true }
 		});
-
-		return cases;
 	} catch (error) {
-		console.log('error', error);
+		console.error('Error fetching cases with debt:', error);
 		return [];
 	}
-};
-export const getCases = async () => {
+}
+
+/**
+ * Obtiene todos los casos completamente pagados
+ * @returns Lista de casos con restAmount = 0
+ */
+export async function getCases(): Promise<CaseWithPayments[]> {
 	try {
-		const cases = await db.cases.findMany({
-			where:{
-				restAmount:{
-					equals:0
-				}
-			},
-			include: {
-				payments: true
-			}
+		return db.cases.findMany({
+			where: { restAmount: { equals: 0 } },
+			include: { payments: true }
 		});
-		return cases;
 	} catch (error) {
-		console.log('error', error);
+		console.error('Error fetching completed cases:', error);
 		return [];
 	}
-};
+}
 
-export const getOverDueCases = async () => {
+/**
+ * Obtiene casos con pagos vencidos
+ * @returns Lista de casos vencidos
+ */
+export async function getOverDueCases(): Promise<CaseWithPayments[]> {
 	const currentDate = new Date();
 	const cases = await getCasesWithDebt();
-	const overdueCases = cases.filter((c) => {
-		const lastPayment = c.payments.find((p) => p.current);
-		if (!lastPayment) {
-			return false;
-		}
-		return lastPayment.due_date < currentDate;
-	});
-	return overdueCases;
-};
-export const getSoonDueCases = async () => {
-	const currentDate = new Date();
-	const cases = await getCasesWithDebt();
-	const soonDueCases = cases.filter((c) => {
-		const lastPayment = c.payments.find((p) => p.current);
-		if (!lastPayment) {
-			return false;
-		}
-		return (
-			lastPayment.due_date > currentDate && differenceInDays(lastPayment.due_date, currentDate) < 5
-		);
-	});
-	return soonDueCases;
-};
 
-export const getOnTimeCases = async () => {
+	return cases.filter((c) => {
+		const currentPayment = findCurrentPayment(c);
+		return currentPayment && currentPayment.due_date < currentDate;
+	});
+}
+
+/**
+ * Obtiene casos con pagos próximos a vencer (menos de 5 días)
+ * @returns Lista de casos próximos a vencer
+ */
+export async function getSoonDueCases(): Promise<CaseWithPayments[]> {
 	const currentDate = new Date();
 	const cases = await getCasesWithDebt();
-	const onTimeCases = cases.filter((c) => {
-		const lastPayment = c.payments.find((p) => p.current);
-		if (!lastPayment) {
-			return false;
-		}
-		return (
-			lastPayment.due_date > currentDate && differenceInDays(lastPayment.due_date, currentDate) >= 5
-		);
+
+	return cases.filter((c) => {
+		const currentPayment = findCurrentPayment(c);
+		if (!currentPayment) return false;
+
+		const daysUntilDue = differenceInDays(currentPayment.due_date, currentDate);
+		return currentPayment.due_date > currentDate && daysUntilDue < 5;
 	});
-	return onTimeCases;
-};
-export const deleteCase = async (caseId: number) => {
-	const caso = await db.cases.delete({
-		where: {
-			id: caseId
-		}
+}
+
+/**
+ * Obtiene casos con pagos al día (5 o más días hasta vencimiento)
+ * @returns Lista de casos al día
+ */
+export async function getOnTimeCases(): Promise<CaseWithPayments[]> {
+	const currentDate = new Date();
+	const cases = await getCasesWithDebt();
+
+	return cases.filter((c) => {
+		const currentPayment = findCurrentPayment(c);
+		if (!currentPayment) return false;
+
+		const daysUntilDue = differenceInDays(currentPayment.due_date, currentDate);
+		return currentPayment.due_date > currentDate && daysUntilDue >= 5;
 	});
-	return caso;
-};
+}
+
+// ============================================
+// DELETE OPERATIONS
+// ============================================
+
+/**
+ * Elimina un caso y sus pagos asociados
+ * @param caseId - ID del caso a eliminar
+ * @returns El caso eliminado
+ */
+export async function deleteCase(caseId: number) {
+	console.log(caseId);
+
+	// Primero eliminar todos los pagos asociados al caso
+	await db.payment.deleteMany({
+		where: { caseId }
+	});
+
+	// Luego eliminar el caso
+	return db.cases.delete({
+		where: { id: caseId }
+	});
+}
+
+// ============================================
+// PRIVATE HELPER FUNCTIONS
+// ============================================
+
+/**
+ * Encuentra el pago actual (pendiente) de un caso
+ */
+function findCurrentPayment(caso: CaseWithPayments) {
+	return caso.payments.find((p) => p.current);
+}
+
+/**
+ * Actualiza un pago cuando hay pagos siguientes
+ */
+async function updatePaymentWithNext(
+	caseId: number,
+	paymentNumber: number,
+	amount: number,
+	typepayment: PaymentType,
+	collector: string,
+	restAmount: number,
+	paymentDate: Date
+) {
+	const [, , casoUpdated] = await db.$transaction([
+		db.payment.update({
+			where: { payment_number_caseId: { payment_number: paymentNumber, caseId } },
+			data: { amount, typepayment, payment_date: paymentDate, current: false, collector }
+		}),
+		db.payment.update({
+			where: { payment_number_caseId: { payment_number: paymentNumber + 1, caseId } },
+			data: { current: true }
+		}),
+		db.cases.update({
+			where: { id: caseId },
+			data: { restAmount, updatedAt: paymentDate }
+		})
+	]);
+
+	return casoUpdated;
+}
+
+/**
+ * Actualiza el pago final de un caso
+ */
+async function updateFinalPayment(
+	caseId: number,
+	paymentNumber: number,
+	amount: number,
+	typepayment: PaymentType,
+	collector: string,
+	restAmount: number,
+	paymentDate: Date
+) {
+	const [, casoUpdated] = await db.$transaction([
+		db.payment.update({
+			where: { payment_number_caseId: { payment_number: paymentNumber, caseId } },
+			data: { amount, typepayment, payment_date: paymentDate, current: false, collector }
+		}),
+		db.cases.update({
+			where: { id: caseId },
+			data: { restAmount, updatedAt: paymentDate }
+		})
+	]);
+
+	return casoUpdated;
+}

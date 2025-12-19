@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { getModalStore, type ModalSettings} from '@skeletonlabs/skeleton';
-	import {page} from '$app/stores';
 	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { getModalStore, type ModalSettings } from '@skeletonlabs/skeleton';
 	import { onMount } from 'svelte';
     const modalStore = getModalStore();
-	const param =  $page.params.estado;
+	const param =  $page.params.estado ?? '';
 	let previousModalValue:ModalSettings|undefined= $modalStore[0];
 	let activeBtn = false;
 const modalToPay: ModalSettings = {
