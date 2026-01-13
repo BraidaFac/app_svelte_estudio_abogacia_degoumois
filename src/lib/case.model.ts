@@ -174,6 +174,29 @@ export async function deleteCase(caseId: number) {
 	});
 }
 
+/**
+ * Salda un caso poniendo el restAmount en 0
+ * @param caseId - ID del caso a saldar
+ * @returns El caso actualizado
+ */
+export async function saldarCase(caseId: number) {
+	const caso = await db.cases.findUnique({
+		where: { id: caseId }
+	});
+
+	if (!caso) {
+		throw new Error('Caso no encontrado');
+	}
+
+	return db.cases.update({
+		where: { id: caseId },
+		data: { 
+			restAmount: 0,
+			updatedAt: new Date()
+		}
+	});
+}
+
 // ============================================
 // PRIVATE HELPER FUNCTIONS
 // ============================================
