@@ -52,7 +52,7 @@ export function searchHandler<T extends SearchableItem>(store: SearchStoreModel<
 	const searchTerm = store.search?.toLowerCase().trim();
 
 	if (!searchTerm) {
-		store.filtered = [];
+		store.filtered = store.data;
 		return;
 	}
 
