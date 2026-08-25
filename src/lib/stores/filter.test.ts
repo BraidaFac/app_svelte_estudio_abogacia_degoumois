@@ -14,7 +14,7 @@ describe('searchHandler', () => {
   });
 
   it('filtra correctamente cuando hay término de búsqueda', () => {
-    const store = { data: mockData, filtered: [], search: 'García' };
+    const store = { data: mockData, filtered: [] as typeof mockData, search: 'García' };
     searchHandler(store);
     expect(store.filtered).toHaveLength(1);
     expect(store.filtered[0].id).toBe(1);
