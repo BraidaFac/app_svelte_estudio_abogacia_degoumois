@@ -161,8 +161,6 @@ export async function getOnTimeCases(): Promise<CaseWithPayments[]> {
  * @returns El caso eliminado
  */
 export async function deleteCase(caseId: number) {
-	console.log(caseId);
-
 	// Primero eliminar todos los pagos asociados al caso
 	await db.payment.deleteMany({
 		where: { caseId }

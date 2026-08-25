@@ -36,8 +36,7 @@
 		loading = true;
 		const form = new FormData(case_form);
 		const data = Object.fromEntries(form.entries());
-		console.log(data);
-		
+
 		validateOrThrow(data,paymentSchema);
 		const response = await fetch('/api/newPayment', {
 			method: 'POST',

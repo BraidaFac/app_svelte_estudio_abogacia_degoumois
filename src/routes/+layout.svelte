@@ -24,7 +24,7 @@ const modalStore = getModalStore();
 <Modal components={modalRegistry} />
 <nav class="flex flex-row justify-between h-20 items-center nav-bar">
 	<div class="ml-3 flex justify-between gap-3 w-1/3">
-		<a href="/="><h1 class="text-4xl title">Estudio Degoumois</h1></a>
+		<a href="/"><h1 class="text-4xl title">Estudio Degoumois</h1></a>
 	</div>
 	<div class="w-1/3 flex justify-center">
 		{#if user}
