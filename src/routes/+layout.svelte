@@ -44,7 +44,6 @@ const modalStore = getModalStore();
 <slot />
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&display=swap');
 .title{
   font-family: "Cinzel", serif;
   font-optical-sizing: auto;
