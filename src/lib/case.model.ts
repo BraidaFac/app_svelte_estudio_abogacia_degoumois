@@ -103,18 +103,63 @@ export async function getCases(): Promise<CaseWithPayments[]> {
 	}
 }
 
+// ============================================
+// CLASSIFICATION TYPES AND HELPERS
+// ============================================
+
+type CaseCategory = 'overdue' | 'soon' | 'onTime' | null;
+
+/**
+ * Clasifica un caso según la fecha de vencimiento de su pago actual
+ * @param caso - Caso con pagos
+ * @param currentDate - Fecha de referencia
+ * @returns Categoría del caso o null si no hay pago actual
+ */
+export function classifyCaseByDate(caso: CaseWithPayments, currentDate: Date): CaseCategory {
+	const currentPayment = caso.payments.find((p) => p.current);
+	if (!currentPayment) return null;
+
+	if (currentPayment.due_date < currentDate) return 'overdue';
+
+	const daysUntilDue = differenceInDays(currentPayment.due_date, currentDate);
+	if (daysUntilDue < 5) return 'soon';
+
+	return 'onTime';
+}
+
+/**
+ * Obtiene todos los casos con deuda agrupados por categoría en una sola consulta
+ * @returns Objeto con arrays overdue, soon, onTime
+ */
+export async function getCasesGrouped(): Promise<{
+	overdue: CaseWithPayments[];
+	soon: CaseWithPayments[];
+	onTime: CaseWithPayments[];
+}> {
+	const currentDate = new Date();
+	const cases = await getCasesWithDebt();
+
+	const overdue: CaseWithPayments[] = [];
+	const soon: CaseWithPayments[] = [];
+	const onTime: CaseWithPayments[] = [];
+
+	for (const caso of cases) {
+		const category = classifyCaseByDate(caso, currentDate);
+		if (category === 'overdue') overdue.push(caso);
+		else if (category === 'soon') soon.push(caso);
+		else if (category === 'onTime') onTime.push(caso);
+	}
+
+	return { overdue, soon, onTime };
+}
+
 /**
  * Obtiene casos con pagos vencidos
  * @returns Lista de casos vencidos
  */
 export async function getOverDueCases(): Promise<CaseWithPayments[]> {
-	const currentDate = new Date();
-	const cases = await getCasesWithDebt();
-
-	return cases.filter((c) => {
-		const currentPayment = findCurrentPayment(c);
-		return currentPayment && currentPayment.due_date < currentDate;
-	});
+	const { overdue } = await getCasesGrouped();
+	return overdue;
 }
 
 /**
@@ -122,16 +167,8 @@ export async function getOverDueCases(): Promise<CaseWithPayments[]> {
  * @returns Lista de casos próximos a vencer
  */
 export async function getSoonDueCases(): Promise<CaseWithPayments[]> {
-	const currentDate = new Date();
-	const cases = await getCasesWithDebt();
-
-	return cases.filter((c) => {
-		const currentPayment = findCurrentPayment(c);
-		if (!currentPayment) return false;
-
-		const daysUntilDue = differenceInDays(currentPayment.due_date, currentDate);
-		return currentPayment.due_date > currentDate && daysUntilDue < 5;
-	});
+	const { soon } = await getCasesGrouped();
+	return soon;
 }
 
 /**
@@ -139,16 +176,8 @@ export async function getSoonDueCases(): Promise<CaseWithPayments[]> {
  * @returns Lista de casos al día
  */
 export async function getOnTimeCases(): Promise<CaseWithPayments[]> {
-	const currentDate = new Date();
-	const cases = await getCasesWithDebt();
-
-	return cases.filter((c) => {
-		const currentPayment = findCurrentPayment(c);
-		if (!currentPayment) return false;
-
-		const daysUntilDue = differenceInDays(currentPayment.due_date, currentDate);
-		return currentPayment.due_date > currentDate && daysUntilDue >= 5;
-	});
+	const { onTime } = await getCasesGrouped();
+	return onTime;
 }
 
 // ============================================
