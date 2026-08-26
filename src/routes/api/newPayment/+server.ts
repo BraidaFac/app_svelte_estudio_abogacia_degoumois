@@ -4,6 +4,7 @@
 
 import { createPayment } from '$lib/case.model';
 import { getJusValue } from '$lib/jus.model';
+import { createErrorResponse } from '$lib/utils/api';
 import type { PaymentType } from '@prisma/client';
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -54,8 +55,4 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 function isValidPaymentData(data: PaymentRequestData): boolean {
 	const { amount, typepayment, caseId, paymentNumber } = data;
 	return Boolean(amount && typepayment && caseId && paymentNumber);
-}
-
-function createErrorResponse(message: string, status: number): Response {
-	return new Response(JSON.stringify({ error: message }), { status });
 }

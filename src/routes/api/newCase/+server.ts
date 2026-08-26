@@ -4,6 +4,7 @@
 
 import { saveCase } from '$lib/case.model';
 import { getJusValue } from '$lib/jus.model';
+import { createErrorResponse } from '$lib/utils/api';
 import type { CreatePaymentData, NewCaseFormData } from '$lib/types/case.types';
 import type { typeCase } from '@prisma/client';
 import { redirect } from '@sveltejs/kit';
@@ -155,8 +156,4 @@ function calculateDueDate(startDate: string, period: string, index: number): Dat
 	}
 
 	return date;
-}
-
-function createErrorResponse(message: string, status: number): Response {
-	return new Response(JSON.stringify({ error: message }), { status });
 }
