@@ -6,7 +6,8 @@
 	import { getModalStore, ProgressRadial } from '@skeletonlabs/skeleton';
 	import { differenceInHours } from 'date-fns';
 	import { fade } from 'svelte/transition';
-	import { ZodError, ZodObject } from 'zod';
+	import { addThousandSeparator } from '$lib/utils/formatters';
+	import { validateOrThrow, manageFormError } from '$lib/utils/form';
 	let loading = false;
 	let input_JUS: HTMLInputElement;
 	let input_PESOS: HTMLInputElement;
@@ -17,10 +18,6 @@
 	let due_date: Date;
 	let isToday: boolean;
 	const user = $page.data.user;
-
-	function addThousandSeparator(price: number) {
-		return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-	}
 
 	let form: { errors: Record<string, string | undefined | string[]> };
 	const isTodayFunction = (today: Date, date: Date) =>
@@ -36,16 +33,7 @@
 	const { jus_value } = $page.data;
 	const modalStore = getModalStore();
 
-	function validateOrThrow(obj: Object, schema: ZodObject<any, any>) {
-		schema.parse(obj);
-	}
 
-	function manageError(error: any) {
-		if (error instanceof ZodError) {
-			const { fieldErrors } = error.flatten();
-			form = { errors: fieldErrors };
-		}
-	}
 	async function onFormSubmit() {
 		try {
 			loading = true;
@@ -64,7 +52,7 @@
 			response_state = response.status;
 		} catch (error) {
 			loading = false;
-			manageError(error);
+			form = { errors: manageFormError(error) };
 		}
 	}
 

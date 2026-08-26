@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { getModalStore,ProgressRadial } from '@skeletonlabs/skeleton';
 	import { page } from '$app/stores';
-	import { ZodError, ZodObject } from 'zod';
+	import { addThousandSeparator } from '$lib/utils/formatters';
+	import { validateOrThrow, manageFormError } from '$lib/utils/form';
 	import { paymentSchema } from '$lib/components/paymentSchema';
 	import {PaymentType} from '$lib/utils/paymentsTypes';
 	import { onMount } from 'svelte';
@@ -16,21 +17,6 @@
 	const modalStore = getModalStore();
 	
     const caso = $modalStore[0].meta.caso;
-	 function validateOrThrow(obj: Object, schema:ZodObject<any, any>) {
-    	schema.parse(obj);
-	}
-	
-	function addThousandSeparator(price: number) {
-		return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-	}
-
-	 function manageError(error: any) {
-		if (error instanceof ZodError) {
-			const { fieldErrors } = error.flatten();
-			form = { errors: fieldErrors } ;
-      
-		}
-	}
 	async function onFormSubmit() {
 	try{
 		loading = true;
@@ -54,7 +40,7 @@
 	}
 	catch(error){
 		loading = false;
-		manageError(error);
+		form = { errors: manageFormError(error) };
 	}
 	}
 	
