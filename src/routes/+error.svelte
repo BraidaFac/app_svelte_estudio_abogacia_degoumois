@@ -1,0 +1,17 @@
+<script lang="ts">
+  import { page } from '$app/stores';
+</script>
+
+<div class="flex min-h-[60vh] flex-col items-center justify-center gap-6 p-8">
+  <div class="card p-8 text-center shadow-xl">
+    <h1 class="mb-2 text-6xl font-bold text-error-500">
+      {$page.status}
+    </h1>
+    <p class="mb-6 text-2xl">
+      {$page.error?.message ?? 'Ocurrió un error inesperado'}
+    </p>
+    <a href="/" class="btn variant-filled-primary">
+      Volver al inicio
+    </a>
+  </div>
+</div>
