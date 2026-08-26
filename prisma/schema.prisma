@@ -28,21 +28,25 @@ model Cases {
   clientName  String
   clientPhone String
   amount      Float
-  restAmount Float 
+  restAmount Float
   payments    Payment[]
-  type        typeCase  
+  type        typeCase
+
+  @@index([userId])
+  @@index([restAmount])
 }
 model Payment{
   payment_number Int
   due_date    DateTime
   payment_date DateTime?
-  caseId      Int 
+  caseId      Int
   case        Cases     @relation(fields: [caseId], references: [id])
   typepayment PaymentType?
   amount      Float?
   current     Boolean
   collector  String?
   @@id([payment_number, caseId])
+  @@index([caseId, current])
 }
 
 model Currency{
