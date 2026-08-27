@@ -36,9 +36,21 @@
 <div class="px-3 md:mx-auto md:w-1/2">
 	<input type="search" class="input" placeholder="Buscar" bind:value={$filterStore} />
 </div>
-<div class="table-wrap p-2 md:p-4">
-	{#if filteredCases.length !== 0}
-		<table class="table text-center">
+
+{#if filteredCases.length === 0}
+	<div class="mt-16 flex flex-col items-center gap-4 text-surface-400">
+		<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+		</svg>
+		{#if $filterStore}
+			<p class="text-xl">Sin resultados para "<strong>{$filterStore}</strong>"</p>
+		{:else}
+			<p class="text-xl">No hay casos activos</p>
+		{/if}
+	</div>
+{:else}
+	<div class="overflow-x-auto p-2 md:p-4">
+		<table class="table text-center min-w-[700px]">
 			<thead>
 				<tr>
 					<th class="text-center">Descripcion</th>
@@ -75,8 +87,8 @@
 				{/each}
 			</tbody>
 		</table>
-	{/if}
-</div>
+	</div>
+{/if}
 
 <style>
 	.table tbody .overdue {

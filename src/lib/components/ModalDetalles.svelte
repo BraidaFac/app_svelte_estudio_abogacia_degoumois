@@ -129,30 +129,28 @@
 							</svg>
 						</button>
 						{#if menuOpen}
-							<div
-								class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-transparent ring-1 ring-black ring-opacity-5 z-10"
-							>
-								<div class="py-1 space-y-2 bg-transparent" role="menu" aria-orientation="vertical">
-									<button
-										class="block w-full bg-gray-600 rounded-lg text-left px-4 py-2 text-sm hover:bg-surface-200-800 transition-colors"
-										onclick={() => {
-											menuOpen = false;
-											view = 'confirmSaldar';
-										}}
-									>
-										Saldar
-									</button>
-									<button
-										class="block w-full bg-gray-600 rounded-lg text-left px-4 py-2 text-sm hover:bg-surface-200-800 transition-colors"
-										onclick={() => {
-											menuOpen = false;
-											view = 'confirmDelete';
-										}}
-									>
-										Eliminar caso
-									</button>
-								</div>
+							<div class="card absolute right-0 mt-2 w-48 shadow-lg z-10">
+							<div class="p-2 space-y-1" role="menu" aria-orientation="vertical">
+								<button
+									class="btn w-full justify-start text-sm hover:bg-surface-200-800 transition-colors"
+									onclick={() => {
+										menuOpen = false;
+										view = 'confirmSaldar';
+									}}
+								>
+									Saldar
+								</button>
+								<button
+									class="btn w-full justify-start text-sm text-error-500 hover:bg-surface-200-800 transition-colors"
+									onclick={() => {
+										menuOpen = false;
+										view = 'confirmDelete';
+									}}
+								>
+									Eliminar caso
+								</button>
 							</div>
+						</div>
 						{/if}
 					</div>
 				</header>
