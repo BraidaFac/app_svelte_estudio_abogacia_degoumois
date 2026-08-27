@@ -187,9 +187,8 @@
 								<span>Adeuda JUS</span>
 								<input
 									autocomplete="off"
-									class="input"
+									class="input text-red-500"
 									readonly
-									style="color:red"
 									type="text"
 									value={`${caso.restAmount.toFixed(3).replace('.', ',')}`}
 								/>

@@ -39,24 +39,21 @@
 <ModalJus bind:dialog={jusDialog} />
 <ModalDetalles bind:dialog={detailsDialog} caso={activeCaso} />
 
-<nav class="flex flex-row justify-between h-20 items-center nav-bar">
-	<div class="ml-3 flex justify-between gap-3 w-1/3">
-		<a href="/"><h1 class="text-4xl title">Estudio Degoumois</h1></a>
-	</div>
-	<div class="w-1/3 flex justify-center">
+<nav class="nav-bar flex items-center justify-between border-b border-surface-300-700 px-4 py-3 md:px-6 md:py-4">
+	<a href="/" class="flex-shrink-0">
+		<h1 class="title text-2xl md:text-3xl lg:text-4xl">Estudio Degoumois</h1>
+	</a>
+
+	<div class="flex items-center gap-3 md:gap-6">
 		{#if user}
 			<button
-				class="btn preset-tonal-success"
+				class="btn preset-tonal-success btn-sm md:btn-md hidden sm:inline-flex"
 				onclick={(e) => {
 					e.preventDefault();
 					formDialog?.showModal();
 				}}>Nuevo Caso</button
 			>
-		{/if}
-	</div>
-	<div class="mr-3 w-1/3 flex justify-end gap-10 items-center">
-		{#if user}
-			<span>Hola {user.name}</span>
+			<span class="hidden md:inline text-sm opacity-75">Hola, {user.name}</span>
 			<BurgerBar {user} />
 		{/if}
 	</div>

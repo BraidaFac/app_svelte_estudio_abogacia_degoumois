@@ -17,32 +17,38 @@
 	}
 </script>
 
-<div class="w-1/3 mx-auto">
-	<h1 class="text-4xl mb-10 text-center">Iniciar Sesion</h1>
-	<form
-		method="POST"
-		use:enhance={({ formData, cancel }) => {
-			try {
-				validateOrThrow(formData);
-				clientError = null;
-				return ({ update }) => update();
-			} catch (error) {
-				cancel();
-				manageError(error);
-			}
-		}}
-	>
-		<label>
-			<span>Nombre</span>
-			<input class="input" type="text" name="name" />
-		</label>
-		<label>
-			<span>Password</span>
-			<input class="input" type="password" name="password" />
-		</label>
-		{#if form?.message || clientError}
-			<span class="text-red-600 block">{form?.message ?? clientError}</span>
-		{/if}
-		<button class="btn preset-filled-primary-500 mt-3" type="submit">Login</button>
-	</form>
+<div class="flex min-h-[70vh] items-center justify-center px-4 py-12">
+	<div class="card w-full max-w-md p-8 shadow-xl space-y-6">
+		<header class="text-center">
+			<h1 class="text-3xl font-semibold">Iniciar Sesión</h1>
+			<p class="text-sm opacity-60 mt-1">Estudio Degoumois</p>
+		</header>
+		<form
+			method="POST"
+			class="space-y-4"
+			use:enhance={({ formData, cancel }) => {
+				try {
+					validateOrThrow(formData);
+					clientError = null;
+					return ({ update }) => update();
+				} catch (error) {
+					cancel();
+					manageError(error);
+				}
+			}}
+		>
+			<label class="label">
+				<span class="font-medium">Nombre</span>
+				<input class="input" type="text" name="name" autocomplete="username" />
+			</label>
+			<label class="label">
+				<span class="font-medium">Contraseña</span>
+				<input class="input" type="password" name="password" autocomplete="current-password" />
+			</label>
+			{#if form?.message || clientError}
+				<p class="text-red-500 text-sm">{form?.message ?? clientError}</p>
+			{/if}
+			<button class="btn preset-filled-primary-500 w-full mt-2" type="submit">Ingresar</button>
+		</form>
+	</div>
 </div>

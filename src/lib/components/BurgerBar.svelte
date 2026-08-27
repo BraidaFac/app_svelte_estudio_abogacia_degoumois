@@ -23,27 +23,27 @@
 
 <div class="burger relative float-right">
 	<div class="relative inline-block text-left">
-		<div>
-			<button
-				onclick={() => (action_flag = !action_flag)}
-				type="button"
-				class="inline-flex w-full justify-center gap-x-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-white hover:text-black"
-				id="menu-button"
-				aria-expanded="true"
-				aria-haspopup="true"
-			>
-				Acciones
-			</button>
-		</div>
+		<button
+			onclick={() => (action_flag = !action_flag)}
+			type="button"
+			class="btn btn-sm preset-tonal-surface"
+			id="menu-button"
+			aria-expanded={action_flag}
+			aria-haspopup="true"
+		>
+			Acciones
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+			</svg>
+		</button>
 		{#if action_flag}
 			<div
-				class="absolute right-0 z-10 mt-2 w-28 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+				class="card absolute right-0 z-20 mt-1 w-40 shadow-xl"
 				role="menu"
 				aria-orientation="vertical"
 				aria-labelledby="menu-button"
-				tabindex="-1"
 			>
-				<div class="py-1" role="none">
+				<div class="p-1 flex flex-col" role="none">
 					<a
 						href="/"
 						onclick={(e) => {
@@ -51,7 +51,7 @@
 							action_flag = false;
 							openNewCase();
 						}}
-						class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
+						class="btn btn-sm justify-start font-normal"
 						role="menuitem"
 						tabindex="-1">Nuevo caso</a
 					>
@@ -62,33 +62,34 @@
 							action_flag = false;
 							openJus();
 						}}
-						class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
+						class="btn btn-sm justify-start font-normal"
 						role="menuitem"
 						tabindex="-1">JUS</a
 					>
 					{#if user.role === 'ADMIN'}
 						<a
 							href="/signup"
-							class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
+							class="btn btn-sm justify-start font-normal"
 							role="menuitem"
 							tabindex="-1">Alta Usuario</a
 						>
 						<a
 							href="/historial"
-							class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
+							class="btn btn-sm justify-start font-normal"
 							role="menuitem"
 							tabindex="-1">Historial</a
 						>
 					{/if}
+					<hr class="my-1 border-surface-300-700" />
 					<form method="POST" action="/logout" bind:this={logoutForm}>
 						<button
 							onclick={() => {
 								action_flag = false;
 								logoutForm?.submit();
 							}}
-							class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
+							class="btn btn-sm justify-start font-normal text-error-500 w-full"
 							role="menuitem"
-							tabindex="-1">Sign out</button
+							tabindex="-1">Cerrar sesión</button
 						>
 					</form>
 				</div>

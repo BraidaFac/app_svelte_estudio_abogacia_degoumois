@@ -31,8 +31,8 @@
 	});
 </script>
 
-<div class="mt-10 flex w-full justify-center">
-	<div class="flex w-1/2 justify-center">
+<div class="mt-8 flex w-full flex-col gap-8 px-4 md:flex-row md:px-6">
+	<div class="flex w-full justify-center md:w-1/2">
 		{#if loading}
 			<div class="mt-20 flex justify-center">
 				<div
@@ -60,8 +60,9 @@
 						manageError(error);
 					}
 				}}
-				class="w-3/4"
+				class="w-full max-w-md space-y-3"
 			>
+				<h2 class="text-2xl font-semibold mb-4">Alta de Usuario</h2>
 				<label class="label">
 					<span>Nombre y Apellido</span>
 					<input
@@ -73,86 +74,89 @@
 						name="name"
 					/>
 					{#if fieldErrors['name']}
-						<span class="text-red-600">{fieldErrors['name']}</span>
+						<span class="text-red-500 text-sm">{fieldErrors['name']}</span>
 					{/if}
 				</label>
 				<label class="label">
-					<span>Password</span>
+					<span>Contraseña</span>
 					<input
 						autocomplete="off"
 						autosave="off"
 						class="input"
 						type="password"
-						placeholder="Password"
+						placeholder="Contraseña"
 						name="password"
 					/>
 					{#if fieldErrors['password']}
-						<span class="text-red-600">{fieldErrors['password']}</span>
+						<span class="text-red-500 text-sm">{fieldErrors['password']}</span>
 					{/if}
 				</label>
 				<label class="label">
-					<span>Confirmar Password</span>
+					<span>Confirmar Contraseña</span>
 					<input
 						autocomplete="off"
 						autosave="off"
 						class="input"
 						type="password"
-						placeholder="Confirmar Password"
+						placeholder="Confirmar Contraseña"
 						name="confirmPassword"
 					/>
 					{#if fieldErrors['confirmPassword']}
 						{#each [fieldErrors['confirmPassword']].flat() as msg}
-							<span class="block text-red-600">{msg}</span>
+							<span class="block text-red-500 text-sm">{msg}</span>
 						{/each}
 					{/if}
 				</label>
 				{#if serverMessage}
-					<span class="block text-red-600">{serverMessage}</span>
+					<p class="text-red-500 text-sm">{serverMessage}</p>
 				{/if}
-				<button type="submit" class="btn preset-filled-primary-500 mt-4">Guardar</button>
+				<button type="submit" class="btn preset-filled-primary-500 mt-2">Guardar</button>
 			</form>
 		{/if}
 	</div>
-	<div class="w-1/2 px-3">
-		<h1 class="mb-3 text-center text-4xl">Usuarios</h1>
-		<table class="table">
-			<thead class="bg-gray-50">
-				<tr>
-					<th>Nombre</th>
-					<th>Rol</th>
-					<th>Acciones</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#if !users || users.length === 0}
+
+	<div class="w-full px-0 md:w-1/2">
+		<h1 class="mb-4 text-2xl font-semibold">Usuarios del sistema</h1>
+		<div class="overflow-x-auto">
+			<table class="table w-full">
+				<thead>
 					<tr>
-						<td colspan="3">No hay usuarios</td>
+						<th>Nombre</th>
+						<th>Rol</th>
+						<th>Acciones</th>
 					</tr>
-				{:else}
-					{#each users as user (user.id)}
+				</thead>
+				<tbody>
+					{#if !users || users.length === 0}
 						<tr>
-							<td>{user.name}</td>
-							<td>{user.role}</td>
-							<td>
-								{#if user.id !== currentUser.id}
-									<form
-										method="POST"
-										action="?/delete"
-										use:enhance={() => {
-											return ({ update, result }) => {
-												if (result.status === 200) invalidateAll();
-											};
-										}}
-									>
-										<input hidden type="text" name="id" value={user.id} />
-										<button class="btn preset-filled-primary-500 btn-sm">Eliminar</button>
-									</form>
-								{/if}
-							</td>
+							<td colspan="3" class="text-center opacity-60">No hay usuarios</td>
 						</tr>
-					{/each}
-				{/if}
-			</tbody>
-		</table>
+					{:else}
+						{#each users as user (user.id)}
+							<tr>
+								<td>{user.name}</td>
+								<td>{user.role}</td>
+								<td>
+									{#if user.id !== currentUser.id}
+										<form
+											method="POST"
+											action="?/delete"
+											use:enhance={() => {
+												return ({ update, result }) => {
+													if (result.status === 200) invalidateAll();
+												};
+											}}
+										>
+											<input hidden type="text" name="id" value={user.id} />
+											<button class="btn preset-filled-error-500 btn-sm">Eliminar</button>
+										</form>
+									{/if}
+								</td>
+							</tr>
+						{/each}
+					{/if}
+				</tbody>
+			</table>
+		</div>
 	</div>
 </div>
