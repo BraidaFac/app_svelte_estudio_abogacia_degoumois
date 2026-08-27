@@ -6,9 +6,10 @@ import { saveCase } from '$lib/case.model';
 import { getJusValue } from '$lib/jus.model';
 import { createErrorResponse } from '$lib/utils/api';
 import type { CreatePaymentData, NewCaseFormData } from '$lib/types/case.types';
-import type { typeCase } from '@prisma/client';
+import type { typeCase, PaymentType } from '@prisma/client';
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { z, ZodError } from 'zod';
 
 // ============================================
 // CONSTANTS
@@ -19,6 +20,24 @@ const PERIOD_DAYS = {
 	QUINCENAL: 15,
 	MENSUAL: 0 // Se maneja por mes
 } as const;
+
+// ============================================
+// VALIDATION SCHEMA
+// ============================================
+
+const NewCaseSchema = z.object({
+	description: z.string().min(1),
+	amount: z.string().min(1),
+	clientName: z.string().min(1),
+	clientPhone: z.string().min(1),
+	quantity_payment: z.string().min(1),
+	due_date: z.string().min(1),
+	type: z.string().min(1),
+	period: z.enum(['SEMANAL', 'QUINCENAL', 'MENSUAL']),
+	amount_payment: z.string().optional(),
+	typepayment: z.string().optional(),
+	collector: z.string().optional()
+});
 
 // ============================================
 // MAIN HANDLER
@@ -36,10 +55,16 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		return createErrorResponse('No se pudo obtener el valor del JUS', 500);
 	}
 
-	const data = (await request.json()) as NewCaseFormData;
+	const rawData = await request.json();
 
-	if (!isValidCaseData(data)) {
-		return createErrorResponse('Faltan datos', 400);
+	let data: NewCaseFormData;
+	try {
+		data = NewCaseSchema.parse(rawData) as NewCaseFormData;
+	} catch (error) {
+		if (error instanceof ZodError) {
+			return createErrorResponse(error.errors[0]?.message ?? 'Datos inválidos', 400);
+		}
+		return createErrorResponse('Datos inválidos', 400);
 	}
 
 	try {
@@ -55,21 +80,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
-
-function isValidCaseData(data: NewCaseFormData): boolean {
-	const { description, amount, clientName, clientPhone, quantity_payment, due_date, type, period } =
-		data;
-	return Boolean(
-		description &&
-		amount &&
-		clientName &&
-		clientPhone &&
-		quantity_payment &&
-		due_date &&
-		type &&
-		period
-	);
-}
 
 function buildCaseData(data: NewCaseFormData, userId: number, jusValue: number) {
 	const {
@@ -133,7 +143,7 @@ function buildPayments(
 		return {
 			payment_number: i + 1,
 			due_date: dueDate,
-			typepayment: typepayment && isFirstPayment ? (typepayment as any) : undefined,
+			typepayment: typepayment && isFirstPayment ? (typepayment as PaymentType) : undefined,
 			collector: collector && isFirstPayment ? collector : undefined,
 			amount:
 				amountPayment && isFirstPayment && jusValue

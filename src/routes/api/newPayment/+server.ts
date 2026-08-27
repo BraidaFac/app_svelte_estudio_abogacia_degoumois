@@ -8,14 +8,19 @@ import { createErrorResponse } from '$lib/utils/api';
 import type { PaymentType } from '@prisma/client';
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { z, ZodError } from 'zod';
 
-interface PaymentRequestData {
-	caseId: string;
-	amount: string;
-	typepayment: string;
-	paymentNumber: string;
-	collector: string;
-}
+// ============================================
+// VALIDATION SCHEMA
+// ============================================
+
+const PaymentSchema = z.object({
+	caseId: z.string().min(1),
+	amount: z.string().min(1),
+	typepayment: z.string().min(1),
+	paymentNumber: z.string().min(1),
+	collector: z.string().min(1)
+});
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	const user = locals.user;
@@ -29,12 +34,19 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		return createErrorResponse('No se pudo obtener el valor del JUS', 500);
 	}
 
-	const data = (await request.json()) as PaymentRequestData;
-	const { caseId, amount, typepayment, paymentNumber, collector } = data;
+	const rawData = await request.json();
 
-	if (!isValidPaymentData(data)) {
-		return createErrorResponse('Faltan datos', 400);
+	let data: z.infer<typeof PaymentSchema>;
+	try {
+		data = PaymentSchema.parse(rawData);
+	} catch (error) {
+		if (error instanceof ZodError) {
+			return createErrorResponse(error.errors[0]?.message ?? 'Datos inválidos', 400);
+		}
+		return createErrorResponse('Datos inválidos', 400);
 	}
+
+	const { caseId, amount, typepayment, paymentNumber, collector } = data;
 
 	try {
 		const amountJus = parseFloat(amount.replace(',', '.'));
@@ -51,8 +63,3 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		return createErrorResponse('Error al registrar pago', 500);
 	}
 };
-
-function isValidPaymentData(data: PaymentRequestData): boolean {
-	const { amount, typepayment, caseId, paymentNumber } = data;
-	return Boolean(amount && typepayment && caseId && paymentNumber);
-}
