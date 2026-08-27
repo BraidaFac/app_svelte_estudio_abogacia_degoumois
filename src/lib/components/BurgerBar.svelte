@@ -1,39 +1,31 @@
 <script lang="ts">
 	import type { Role } from '@prisma/client';
-	import { getModalStore, type ModalSettings } from '@skeletonlabs/skeleton';
-	import { onMount } from 'svelte';
+	import type { ModalContext } from '$lib/types/modal.types';
+	import { getContext } from 'svelte';
 
-	export let user: { id: number; name: string; role: Role };
+	let { user }: { user: { id: number; name: string; role: Role } } = $props();
 
-	onMount(() => {
-		let body = document.querySelector('body');
-		body?.addEventListener('click', (e) => {
+	const { openNewCase, openJus } = getContext<ModalContext>('modals');
+
+	let action_flag = $state(false);
+	let logoutForm = $state<HTMLFormElement | undefined>();
+
+	$effect(() => {
+		const handler = (e: MouseEvent) => {
 			if (e.target !== document.getElementById('menu-button')) {
 				action_flag = false;
 			}
-		});
+		};
+		document.querySelector('body')?.addEventListener('click', handler);
+		return () => document.querySelector('body')?.removeEventListener('click', handler);
 	});
-
-	const modalStore = getModalStore();
-	const modal: ModalSettings = {
-		type: 'component',
-		component: 'modal'
-	};
-
-	const 	modalJus: ModalSettings = {
-		type: 'component',
-		component: 'modalJus'
-	};
-
-	let action_flag = false;
-	let logoutForm: HTMLFormElement;
 </script>
 
 <div class="burger relative float-right">
 	<div class="relative inline-block text-left">
 		<div>
 			<button
-				on:click={() => (action_flag = !action_flag)}
+				onclick={() => (action_flag = !action_flag)}
 				type="button"
 				class="inline-flex w-full justify-center gap-x-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-white shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-white hover:text-black"
 				id="menu-button"
@@ -54,52 +46,49 @@
 				<div class="py-1" role="none">
 					<a
 						href="/"
-						on:click|preventDefault={() => {
-							action_flag = !action_flag;
-							modalStore.trigger(modal);
+						onclick={(e) => {
+							e.preventDefault();
+							action_flag = false;
+							openNewCase();
 						}}
 						class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
 						role="menuitem"
-						tabindex="-1"
-						id="menu-item-1">Nuevo caso</a
+						tabindex="-1">Nuevo caso</a
 					>
 					<a
 						href="/"
-						on:click|preventDefault={() => {
-							action_flag = !action_flag;
-							modalStore.trigger(modalJus);
+						onclick={(e) => {
+							e.preventDefault();
+							action_flag = false;
+							openJus();
 						}}
 						class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
 						role="menuitem"
-						tabindex="-1"
-						id="menu-item-1">JUS</a
+						tabindex="-1">JUS</a
 					>
 					{#if user.role === 'ADMIN'}
 						<a
 							href="/signup"
 							class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
 							role="menuitem"
-							tabindex="-1"
-							id="menu-item-1">Alta Usuario</a
+							tabindex="-1">Alta Usuario</a
 						>
 						<a
 							href="/historial"
 							class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
 							role="menuitem"
-							tabindex="-1"
-							id="menu-item-1">Historial</a
+							tabindex="-1">Historial</a
 						>
 					{/if}
 					<form method="POST" action="/logout" bind:this={logoutForm}>
 						<button
-							on:click={() => {
-								action_flag = !action_flag;
+							onclick={() => {
+								action_flag = false;
 								logoutForm?.submit();
 							}}
 							class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-150"
 							role="menuitem"
-							tabindex="-1"
-							id="menu-item-3">Sign out</button
+							tabindex="-1">Sign out</button
 						>
 					</form>
 				</div>

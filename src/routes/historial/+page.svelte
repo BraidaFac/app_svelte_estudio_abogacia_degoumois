@@ -1,86 +1,49 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
-	import { getModalStore, type ModalSettings } from '@skeletonlabs/skeleton';
-	import { onMount } from 'svelte';
+	import type { ModalContext } from '$lib/types/modal.types';
+	import { getContext } from 'svelte';
 	import type { PageData } from './$types';
-	const modalStore = getModalStore();
-	let previousModalValue: ModalSettings | undefined = $modalStore[0];
-	let activeBtn = false;
-	const modalDetalle: ModalSettings = {
-		type: 'component',
-		component: 'modalDetalle',
-		meta: {}
-	};
 
-	const modalAlert: ModalSettings = {
-		type: 'alert',
-		modalClasses: 'p-6'
-	};
-	const modalConfirm: ModalSettings = {
-		type: 'confirm',
-		title: 'Confirmar acción',
-		body: 'Estas seguro de eliminar el caso?',
-		meta: {},
-		modalClasses: 'p-6',
-		// TRUE if confirm pressed, FALSE if cancel pressed
-		response: async (r: boolean) => {
-			if (r) {
-				const data = new FormData();
-				data.append('caseId', modalConfirm.meta.caso.id);
-				const response = await fetch('/historial', {
-					method: 'POST',
-					body: data
-				});
-				if (response.status !== 200) {
-					const error = (await response.json()).error.message;
-					modalAlert.title = 'Error';
-					modalAlert.body = error;
-					modalStore.trigger(modalAlert);
-				} else {
-					modalAlert.title = 'Exito al eliminar';
-					modalAlert.body = 'Se ha eliminado el caso correctamente';
-					modalStore.trigger(modalAlert);
-					invalidateAll();
-				}
-			}
-		}
-	};
-	export let data: PageData;
-	$: cases = data.cases;
-	$: {
-		if (!$modalStore[0] && previousModalValue) {
-			invalidateAll();
-			previousModalValue = $modalStore[0];
-		}
-	}
-	$: {
-		if ($modalStore[0]) {
-			previousModalValue = $modalStore[0];
-		}
-	}
-	onMount(() => {
-		document.addEventListener('scroll', () => {
+	let { data }: { data: PageData } = $props();
+	let cases = $derived(data.cases);
+
+	const { openDetails } = getContext<ModalContext>('modals');
+
+	let activeBtn = $state(false);
+
+	$effect(() => {
+		const handler = () => {
 			const navBar = document.querySelector('.nav-bar');
-			if (navBar && window.scrollY > navBar.clientHeight + 100) {
-				activeBtn = true;
+			activeBtn = !!(navBar && window.scrollY > navBar.clientHeight + 100);
+		};
+		document.addEventListener('scroll', handler);
+		return () => document.removeEventListener('scroll', handler);
+	});
+
+	function confirmDelete(caso: any) {
+		if (!confirm('¿Estás seguro de eliminar el caso?')) return;
+		const data = new FormData();
+		data.append('caseId', String(caso.id));
+		fetch('/historial', { method: 'POST', body: data }).then(async (response) => {
+			if (response.status !== 200) {
+				const error = (await response.json()).error?.message ?? 'Error al eliminar';
+				alert(error);
 			} else {
-				activeBtn = false;
+				alert('Se ha eliminado el caso correctamente');
+				window.location.reload();
 			}
 		});
-	});
+	}
 </script>
 
 {#if activeBtn}
 	<button
-		class="variant-filled-warning btn fixed bottom-5 left-1/2 h-8"
-		on:click={() => {
-			document.documentElement.scrollTop = 0;
-		}}>Volver</button
+		class="btn preset-filled-warning-500 fixed bottom-5 left-1/2 h-8"
+		onclick={() => (document.documentElement.scrollTop = 0)}>Volver</button
 	>
 {/if}
 <section class="p-3">
 	<p class="my-4 rounded-md text-center text-3xl">Historial de cancelación total</p>
-	<table class="table table-interactive text-center">
+	<table class="table text-center">
 		<thead>
 			<tr>
 				<th class="text-center">Descripcion</th>
@@ -93,8 +56,8 @@
 				<th class="text-center">Eliminar</th>
 			</tr>
 		</thead>
-		<tbody
-			>{#if cases.length === 0}
+		<tbody>
+			{#if cases.length === 0}
 				<tr>
 					<td colspan="8">No existen</td>
 				</tr>
@@ -109,20 +72,14 @@
 						<td>{caso.created}</td>
 						<td>
 							<button
-								class="variant-filled-warning btn h-8"
-								on:click={() => {
-									modalDetalle.meta = { caso };
-									modalStore.trigger(modalDetalle);
-								}}>Ver</button
+								class="btn preset-filled-warning-500 btn-sm"
+								onclick={() => openDetails(caso)}>Ver</button
 							>
 						</td>
 						<td>
 							<button
-								class="variant-filled-primary btn h-8"
-								on:click={() => {
-									modalConfirm.meta = { caso };
-									modalStore.trigger(modalConfirm);
-								}}>Eliminar</button
+								class="btn preset-filled-primary-500 btn-sm"
+								onclick={() => confirmDelete(caso)}>Eliminar</button
 							>
 						</td>
 					</tr>

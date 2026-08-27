@@ -1,36 +1,44 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { ProgressRadial } from '@skeletonlabs/skeleton';
+	import { page } from '$app/state';
 	import { ZodError } from 'zod';
 	import type { ActionData, PageData } from './$types';
 	import { registerSchema } from './registerSchema';
 
-	let loading = false;
-	export let form: ActionData;
-	export let data: PageData;
-
-	$: users = data.users ?? [];
-	const currentUser = $page.data.user;
+	let { form, data }: { form: ActionData; data: PageData } = $props();
+	let users = $derived(data.users ?? []);
+	const currentUser = page.data.user;
+	let loading = $state(false);
+	let fieldErrors = $state<Record<string, string | string[] | undefined>>({});
+	let serverMessage = $state<string | null>(null);
 
 	function validateOrThrow(formdata: FormData) {
 		const obj = Object.fromEntries(formdata.entries());
 		registerSchema.parse(obj);
 	}
 
-	function manageError(error: any) {
+	function manageError(error: unknown) {
 		if (error instanceof ZodError) {
-			const { fieldErrors } = error.flatten();
-			form = { errors: fieldErrors } as ActionData;
+			const { fieldErrors: fe } = error.flatten();
+			fieldErrors = fe;
 		}
 	}
+
+	$effect(() => {
+		if (form?.message) serverMessage = form.message;
+		if (form?.errors) fieldErrors = form.errors as Record<string, string | string[] | undefined>;
+	});
 </script>
 
 <div class="mt-10 flex w-full justify-center">
 	<div class="flex w-1/2 justify-center">
 		{#if loading}
-			<ProgressRadial class="mt-20 h-14 w-14" />
+			<div class="mt-20 flex justify-center">
+				<div
+					class="size-14 animate-spin rounded-full border-4 border-surface-300-700 border-t-primary-500"
+				></div>
+			</div>
 		{:else}
 			<form
 				method="POST"
@@ -38,6 +46,8 @@
 				use:enhance={({ formData, cancel }) => {
 					try {
 						loading = true;
+						fieldErrors = {};
+						serverMessage = null;
 						validateOrThrow(formData);
 						return ({ update }) => {
 							loading = false;
@@ -46,6 +56,7 @@
 						};
 					} catch (error) {
 						cancel();
+						loading = false;
 						manageError(error);
 					}
 				}}
@@ -61,8 +72,8 @@
 						placeholder="Nombre"
 						name="name"
 					/>
-					{#if form?.errors && form?.errors['name']}
-						<span class="text-red-600">{form?.errors['name']}</span>
+					{#if fieldErrors['name']}
+						<span class="text-red-600">{fieldErrors['name']}</span>
 					{/if}
 				</label>
 				<label class="label">
@@ -75,8 +86,8 @@
 						placeholder="Password"
 						name="password"
 					/>
-					{#if form?.errors && form?.errors['password']}
-						<span class="text-red-600">{form?.errors['password']}</span>
+					{#if fieldErrors['password']}
+						<span class="text-red-600">{fieldErrors['password']}</span>
 					{/if}
 				</label>
 				<label class="label">
@@ -89,17 +100,16 @@
 						placeholder="Confirmar Password"
 						name="confirmPassword"
 					/>
-					{#if form?.errors && form?.errors['confirmPassword']}
-						<span class="text-red-600">{form?.errors['confirmPassword'][0]}</span>
-					{/if}
-					{#if form?.errors && form?.errors['confirmPassword'] && form?.errors['confirmPassword'][1]}
-						<span class="block text-red-600">{form?.errors['confirmPassword'][1]}</span>
+					{#if fieldErrors['confirmPassword']}
+						{#each [fieldErrors['confirmPassword']].flat() as msg}
+							<span class="block text-red-600">{msg}</span>
+						{/each}
 					{/if}
 				</label>
-				{#if form?.message}
-					<span class="block text-red-600">{form.message}</span>
+				{#if serverMessage}
+					<span class="block text-red-600">{serverMessage}</span>
 				{/if}
-				<button type="submit" class="variant-filled-primary btn mt-4">Guardar</button>
+				<button type="submit" class="btn preset-filled-primary-500 mt-4">Guardar</button>
 			</form>
 		{/if}
 	</div>
@@ -116,7 +126,7 @@
 			<tbody>
 				{#if !users || users.length === 0}
 					<tr>
-						<td class="" colspan="3">No hay usuarios</td>
+						<td colspan="3">No hay usuarios</td>
 					</tr>
 				{:else}
 					{#each users as user (user.id)}
@@ -128,16 +138,14 @@
 									<form
 										method="POST"
 										action="?/delete"
-										use:enhance={({}) => {
+										use:enhance={() => {
 											return ({ update, result }) => {
-												if (result.status === 200) {
-													invalidateAll();
-												}
+												if (result.status === 200) invalidateAll();
 											};
 										}}
 									>
 										<input hidden type="text" name="id" value={user.id} />
-										<button class="variant-filled-primary btn h-6">Eliminar</button>
+										<button class="btn preset-filled-primary-500 btn-sm">Eliminar</button>
 									</form>
 								{/if}
 							</td>

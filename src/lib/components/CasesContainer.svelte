@@ -1,65 +1,44 @@
 <script lang="ts">
-	import { createSearchStore, filterStore, searchHandler } from '$lib/stores/filter';
+	import { filterStore } from '$lib/stores/filter';
 	import type { FormattedCase } from '$lib/types/case.types';
-	import { getModalStore, type ModalSettings } from '@skeletonlabs/skeleton';
+	import type { ModalContext } from '$lib/types/modal.types';
 	import { differenceInHours } from 'date-fns';
-	import { onDestroy } from 'svelte';
+	import { getContext } from 'svelte';
 
-	export let cases: FormattedCase[];
+	let { cases }: { cases: FormattedCase[] } = $props();
 
-	const modalStore = getModalStore();
+	const { openToPay, openDetails } = getContext<ModalContext>('modals');
 
-	const modalToPay: ModalSettings = {
-		type: 'component',
-		component: 'modalToPay',
-		meta: {}
-	};
-	const modalDetalle: ModalSettings = {
-		type: 'component',
-		component: 'modalDetalle',
-		meta: {}
-	};
-
-	const searchStore = createSearchStore(cases);
-
-	const unsubscribe = searchStore.subscribe((model) => searchHandler(model));
-
-	onDestroy(() => {
-		unsubscribe();
+	let filteredCases = $derived.by(() => {
+		const term = $filterStore.toLowerCase().trim();
+		if (!term) return cases;
+		const words = term.split(/\s+/);
+		return cases.filter((caso) => {
+			const terms = ((caso as any).searchTerms ?? '').toLowerCase();
+			return words.every((w) => terms.includes(w));
+		});
 	});
 
-	// Sincronizar el valor de `filterStore` con `searchStore.search`
-	$: $searchStore.search = $filterStore;
-
-	// Casos filtrados con tipo correcto
-	$: filteredCases = $searchStore.filtered as unknown as FormattedCase[];
-
 	function verifyDate(date: string | undefined): string | undefined {
-		if (typeof date !== 'string' || !/^\d{2}-\d{2}-\d{4}$/.test(date)) {
-			return undefined;
-		}
+		if (typeof date !== 'string' || !/^\d{2}-\d{2}-\d{4}$/.test(date)) return undefined;
 		const [day, month, year] = date.split('-').map(Number);
 		const dateNow = new Date();
 		dateNow.setHours(-3, 0, 0, 0);
 		const caseDate = new Date(`${year}-${month}-${day}`);
 		caseDate.setHours(-3, 0, 0, 0);
 		const diffTime = differenceInHours(caseDate, dateNow);
-		if (diffTime < 0) {
-			return 'overdue';
-		} else if (diffTime < 24 * 5) {
-			return 'soon';
-		} else {
-			return 'ontime';
-		}
+		if (diffTime < 0) return 'overdue';
+		if (diffTime < 24 * 5) return 'soon';
+		return 'ontime';
 	}
 </script>
 
 <div class="px-3 md:mx-auto md:w-1/2">
 	<input type="search" class="input" placeholder="Buscar" bind:value={$filterStore} />
 </div>
-<div class="table-container p-2 md:p-4">
+<div class="table-wrap p-2 md:p-4">
 	{#if filteredCases.length !== 0}
-		<table class="table table-interactive text-center">
+		<table class="table text-center">
 			<thead>
 				<tr>
 					<th class="text-center">Descripcion</th>
@@ -73,41 +52,27 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#if filteredCases.length === 0}
-					<tr>
-						<td colspan="7">No existen</td>
+				{#each filteredCases as caso (caso.id)}
+					<tr class={verifyDate(caso.dueDate)}>
+						<td>{caso.description}</td>
+						<td>{caso.type}</td>
+						<td>{caso.clientName}</td>
+						<td>{caso.clientPhone}</td>
+						<td>{caso.restAmount.toString().replace(/\./, ',')} JUS</td>
+						<td>{caso.quantityPaymentsToPay}</td>
+						<td>{caso.dueDate ?? 'No tiene'}</td>
+						<td class="flex justify-center gap-2">
+							<button
+								class="btn preset-filled-success-500 btn-sm"
+								onclick={() => openToPay(caso)}>Cobrar</button
+							>
+							<button
+								class="btn preset-filled-secondary-500 btn-sm"
+								onclick={() => openDetails(caso)}>Detalles</button
+							>
+						</td>
 					</tr>
-				{:else}
-					{#each filteredCases as caso (caso.id)}
-						<tr class={verifyDate(caso.dueDate)}>
-							<td>{caso.description}</td>
-							<td>{caso.type}</td>
-							<td>{caso.clientName}</td>
-							<td>{caso.clientPhone}</td>
-							<td>{caso.restAmount.toString().replace(/\./, ',')} JUS</td>
-							<td>{caso.quantityPaymentsToPay}</td>
-							<td>{caso.dueDate ?? 'No tiene'}</td>
-							<td class="flex justify-center gap-2">
-								<button
-									class="variant-filled-success btn h-6"
-									on:click={() => {
-										modalToPay.meta = { caso };
-										modalStore.trigger(modalToPay);
-									}}
-									>Cobrar
-								</button>
-								<button
-									class="variant-filled-secondary btn h-6"
-									on:click={() => {
-										modalDetalle.meta = { caso };
-										modalStore.trigger(modalDetalle);
-									}}
-									>Detalles
-								</button>
-							</td>
-						</tr>
-					{/each}
-				{/if}
+				{/each}
 			</tbody>
 		</table>
 	{/if}
