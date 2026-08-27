@@ -1,11 +1,8 @@
 <script lang="ts">
 	import CasesContainer from '$lib/components/CasesContainer.svelte';
-	export let data;
-	let cases: any[];
+	import type { PageData } from './$types';
 
-	$: {
-		cases = data.cases;
-	}
+	export let data: PageData;
 </script>
 
 <div class="sections mb-10 grid grid-cols-3 gap-4 pt-10">
@@ -25,6 +22,4 @@
 		</section></a
 	>
 </div>
-{#key cases}
-	<CasesContainer {cases} />
-{/key}
+<CasesContainer cases={data.cases} />

@@ -2,6 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { getModalStore, type ModalSettings } from '@skeletonlabs/skeleton';
 	import { onMount } from 'svelte';
+	import type { PageData } from './$types';
 	const modalStore = getModalStore();
 	let previousModalValue: ModalSettings | undefined = $modalStore[0];
 	let activeBtn = false;
@@ -44,13 +45,8 @@
 			}
 		}
 	};
-	export let data;
-	let cases: any;
-	$: {
-		if (data?.cases) {
-			cases = data.cases;
-		}
-	}
+	export let data: PageData;
+	$: cases = data.cases;
 	$: {
 		if (!$modalStore[0] && previousModalValue) {
 			invalidateAll();
