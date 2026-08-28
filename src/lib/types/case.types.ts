@@ -2,19 +2,34 @@
  * Tipos centralizados para Cases
  */
 
-import type { Cases, Payment, PaymentType, typeCase } from '@prisma/client';
+import type { Cases, Payment, PaymentType, PaymentStatus, typeCase } from '@prisma/client';
 
 /**
- * Caso con sus pagos incluidos
+ * Caso con sus pagos incluidos (resultado directo de Prisma — contiene Prisma.Decimal)
+ * Solo usar en model layer, NO enviar al cliente directamente.
  */
 export interface CaseWithPayments extends Cases {
 	payments: Payment[];
 }
 
 /**
- * Caso formateado para mostrar en la UI
+ * Pago con amount convertido a number — seguro para enviar al cliente via SvelteKit
  */
-export interface FormattedCase extends CaseWithPayments {
+export interface ClientPayment extends Omit<Payment, 'amount'> {
+	amount: number | null;
+}
+
+/**
+ * Caso formateado para la UI — todos los campos monetarios como number.
+ * Este tipo es el que viaja de +page.server.ts al componente.
+ */
+export interface FormattedCase extends Omit<
+	CaseWithPayments,
+	'amount' | 'restAmount' | 'payments'
+> {
+	amount: number;
+	restAmount: number;
+	payments: ClientPayment[];
 	dueDate?: string;
 	quantityPaymentsToPay: number;
 	searchTerms?: string;
@@ -78,8 +93,8 @@ export interface RegisterPaymentData {
 }
 
 /**
- * Pago formateado para la UI
+ * Pago formateado para la UI (due_date como string)
  */
-export interface FormattedPayment extends Omit<Payment, 'due_date'> {
+export interface FormattedPayment extends Omit<ClientPayment, 'due_date'> {
 	due_date: string;
 }

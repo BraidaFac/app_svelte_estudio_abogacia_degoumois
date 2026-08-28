@@ -1,5 +1,5 @@
 import { deleteCase, getCases } from '$lib/case.model';
-import type { FormattedCase } from '$lib/types/case.types';
+import type { ClientPayment, FormattedCase } from '$lib/types/case.types';
 import { formatDateToDMY } from '$lib/utils/formatters';
 import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -19,11 +19,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const cases: FormattedCase[] = rawCases
 		.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-		.map((c) => ({
-			...c,
-			created: formatDateToDMY(c.createdAt),
-			quantityPaymentsToPay: c.payments.filter((p) => !p.payment_date).length
-		}));
+		.map((c) => {
+			const payments: ClientPayment[] = c.payments.map((p) => ({
+				...p,
+				amount: p.amount ? p.amount.toNumber() : null
+			}));
+			return {
+				...c,
+				amount: c.amount.toNumber(),
+				restAmount: c.restAmount.toNumber(),
+				payments,
+				created: formatDateToDMY(c.createdAt),
+				quantityPaymentsToPay: c.payments.filter((p) => !p.payment_date).length
+			};
+		});
 
 	return { user, cases };
 };

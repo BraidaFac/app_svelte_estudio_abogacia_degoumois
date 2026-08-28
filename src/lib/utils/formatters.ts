@@ -73,3 +73,30 @@ export function parseCommaDecimal(value: string): number {
 	return Number(value.replace(',', '.'));
 }
 
+// ============================================
+// JUS / CURRENCY FORMATTERS
+// ============================================
+
+const _jusFormatter = new Intl.NumberFormat('es-AR', {
+	minimumFractionDigits: 0,
+	maximumFractionDigits: 4
+});
+
+/**
+ * Formats a JUS amount with Argentine locale (dot as thousands separator,
+ * comma as decimal separator) and appends " JUS".
+ * Example: 1234.75 → "1.234,75 JUS"
+ * @param value - Numeric JUS amount (number, already converted from Prisma.Decimal)
+ */
+export function formatJUS(value: number): string {
+	return `${_jusFormatter.format(value)} JUS`;
+}
+
+/**
+ * Formats a number with Argentine locale without a suffix.
+ * Example: 1234.75 → "1.234,75"
+ * @param value - Numeric value to format
+ */
+export function formatNumber(value: number): string {
+	return _jusFormatter.format(value);
+}

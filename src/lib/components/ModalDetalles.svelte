@@ -2,8 +2,8 @@
 	import { invalidateAll } from '$app/navigation';
 	import type { FormattedCase } from '$lib/types/case.types';
 	import type { ModalContext } from '$lib/types/modal.types';
-	import { formatDateToDMY } from '$lib/utils/formatters';
-	import type { Payment } from '@prisma/client';
+	import type { ClientPayment } from '$lib/types/case.types';
+	import { formatDateToDMY, formatJUS } from '$lib/utils/formatters';
 	import { getContext } from 'svelte';
 
 	let {
@@ -85,17 +85,17 @@
 		}
 	}
 
-	interface FormattedPaymentDisplay extends Omit<Payment, 'due_date'> {
+	interface FormattedPaymentDisplay extends Omit<ClientPayment, 'due_date'> {
 		due_date: string | undefined;
 	}
 
 	let payments = $derived<FormattedPaymentDisplay[]>(
 		caso
 			? caso.restAmount > 0
-				? caso.payments.map((p: Payment) => ({ ...p, due_date: formatDateToDMY(p.due_date) }))
+				? caso.payments.map((p: ClientPayment) => ({ ...p, due_date: formatDateToDMY(p.due_date) }))
 				: caso.payments
-						.filter((p: Payment) => p.payment_date)
-						.map((p: Payment) => ({ ...p, due_date: formatDateToDMY(p.due_date) }))
+						.filter((p: ClientPayment) => p.payment_date)
+						.map((p: ClientPayment) => ({ ...p, due_date: formatDateToDMY(p.due_date) }))
 			: []
 	);
 
@@ -112,7 +112,7 @@
 					<span>Detalles: {caso.description}</span>
 					<div class="menu-container absolute top-0 right-0">
 						<button
-							class="p-2 hover:bg-surface-200-800 rounded transition-colors"
+							class="hover:bg-surface-200-800 rounded p-2 transition-colors"
 							onclick={toggleMenu}
 							aria-label="Opciones"
 						>
@@ -129,45 +129,45 @@
 							</svg>
 						</button>
 						{#if menuOpen}
-							<div class="card absolute right-0 mt-2 w-48 shadow-lg z-10">
-							<div class="p-2 space-y-1" role="menu" aria-orientation="vertical">
-								<button
-									class="btn w-full justify-start text-sm hover:bg-surface-200-800 transition-colors"
-									onclick={() => {
-										menuOpen = false;
-										view = 'confirmSaldar';
-									}}
-								>
-									Saldar
-								</button>
-								<button
-									class="btn w-full justify-start text-sm text-error-500 hover:bg-surface-200-800 transition-colors"
-									onclick={() => {
-										menuOpen = false;
-										view = 'confirmDelete';
-									}}
-								>
-									Eliminar caso
-								</button>
+							<div class="card absolute right-0 z-10 mt-2 w-48 shadow-lg">
+								<div class="space-y-1 p-2" role="menu" aria-orientation="vertical">
+									<button
+										class="btn hover:bg-surface-200-800 w-full justify-start text-sm transition-colors"
+										onclick={() => {
+											menuOpen = false;
+											view = 'confirmSaldar';
+										}}
+									>
+										Saldar
+									</button>
+									<button
+										class="btn text-error-500 hover:bg-surface-200-800 w-full justify-start text-sm transition-colors"
+										onclick={() => {
+											menuOpen = false;
+											view = 'confirmDelete';
+										}}
+									>
+										Eliminar caso
+									</button>
+								</div>
 							</div>
-						</div>
 						{/if}
 					</div>
 				</header>
 
 				<div class={cDiv}>
 					<div
-						class="grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-4 pb-3 border-b border-surface-300 font-semibold text-sm"
+						class="border-surface-300 grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-4 border-b pb-3 text-sm font-semibold"
 					>
 						<div class="text-center">Cuota</div>
 						<div class="text-center">Fecha</div>
 						<div class="text-center">Cobrador</div>
 						<div class="text-center">Monto/Acción</div>
 					</div>
-					<div class="space-y-2 mt-3">
+					<div class="mt-3 space-y-2">
 						{#each payments as p}
 							<div
-								class="grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-4 items-center py-2 px-2 rounded hover:bg-surface-100-900 transition-colors"
+								class="hover:bg-surface-100-900 grid grid-cols-[1fr_1fr_1.5fr_1fr] items-center gap-4 rounded px-2 py-2 transition-colors"
 							>
 								<div class="text-center text-sm">Nº {p.payment_number}</div>
 								<div class="text-center text-sm">{p.due_date}</div>
@@ -179,11 +179,11 @@
 										</button>
 									</div>
 								{:else if p.payment_date}
-									<div class="text-center text-sm font-medium text-success-600-400">
-										{p.amount?.toString().replace(/\./, ',') ?? '0'} JUS
+									<div class="text-success-600-400 text-center text-sm font-medium">
+										{formatJUS(p.amount ?? 0)}
 									</div>
 								{:else}
-									<div class="text-center text-sm text-surface-400">-</div>
+									<div class="text-surface-400 text-center text-sm">-</div>
 								{/if}
 							</div>
 						{/each}
@@ -195,12 +195,15 @@
 						>Salir</button
 					>
 				</div>
-
 			{:else if view === 'confirmSaldar'}
 				<header class={cHeader}>Confirmar acción</header>
-				<p class="text-center">¿Estás seguro de saldar el caso? Esto pondrá el monto restante en 0.</p>
+				<p class="text-center">
+					¿Estás seguro de saldar el caso? Esto pondrá el monto restante en 0.
+				</p>
 				{#if actionResult}
-					<p class={actionResult.success ? 'text-green-600 text-center' : 'text-red-600 text-center'}>
+					<p
+						class={actionResult.success ? 'text-center text-green-600' : 'text-center text-red-600'}
+					>
 						{actionResult.message}
 					</p>
 					<div class="flex justify-center">
@@ -211,7 +214,7 @@
 				{:else if actionLoading}
 					<div class="flex justify-center">
 						<div
-							class="size-10 animate-spin rounded-full border-4 border-surface-300-700 border-t-primary-500"
+							class="border-surface-300-700 border-t-primary-500 size-10 animate-spin rounded-full border-4"
 						></div>
 					</div>
 				{:else}
@@ -222,12 +225,13 @@
 						>
 					</div>
 				{/if}
-
 			{:else if view === 'confirmDelete'}
 				<header class={cHeader}>Confirmar acción</header>
 				<p class="text-center">¿Estás seguro de eliminar el caso?</p>
 				{#if actionResult}
-					<p class={actionResult.success ? 'text-green-600 text-center' : 'text-red-600 text-center'}>
+					<p
+						class={actionResult.success ? 'text-center text-green-600' : 'text-center text-red-600'}
+					>
 						{actionResult.message}
 					</p>
 					<div class="flex justify-center">
@@ -238,7 +242,7 @@
 				{:else if actionLoading}
 					<div class="flex justify-center">
 						<div
-							class="size-10 animate-spin rounded-full border-4 border-surface-300-700 border-t-primary-500"
+							class="border-surface-300-700 border-t-primary-500 size-10 animate-spin rounded-full border-4"
 						></div>
 					</div>
 				{:else}

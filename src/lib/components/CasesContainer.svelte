@@ -2,6 +2,7 @@
 	import { filterStore } from '$lib/stores/filter';
 	import type { FormattedCase } from '$lib/types/case.types';
 	import type { ModalContext } from '$lib/types/modal.types';
+	import { formatJUS } from '$lib/utils/formatters';
 	import { differenceInHours } from 'date-fns';
 	import { getContext } from 'svelte';
 
@@ -38,9 +39,20 @@
 </div>
 
 {#if filteredCases.length === 0}
-	<div class="mt-16 flex flex-col items-center gap-4 text-surface-400">
-		<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+	<div class="text-surface-400 mt-16 flex flex-col items-center gap-4">
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			class="h-16 w-16"
+			fill="none"
+			viewBox="0 0 24 24"
+			stroke="currentColor"
+		>
+			<path
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="1"
+				d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+			/>
 		</svg>
 		{#if $filterStore}
 			<p class="text-xl">Sin resultados para "<strong>{$filterStore}</strong>"</p>
@@ -50,7 +62,7 @@
 	</div>
 {:else}
 	<div class="overflow-x-auto p-2 md:p-4">
-		<table class="table text-center min-w-[700px]">
+		<table class="table min-w-[700px] text-center">
 			<thead>
 				<tr>
 					<th class="text-center">Descripcion</th>
@@ -70,13 +82,12 @@
 						<td>{caso.type}</td>
 						<td>{caso.clientName}</td>
 						<td>{caso.clientPhone}</td>
-						<td>{caso.restAmount.toString().replace(/\./, ',')} JUS</td>
+						<td>{formatJUS(caso.restAmount)}</td>
 						<td>{caso.quantityPaymentsToPay}</td>
 						<td>{caso.dueDate ?? 'No tiene'}</td>
 						<td class="flex justify-center gap-2">
-							<button
-								class="btn preset-filled-success-500 btn-sm"
-								onclick={() => openToPay(caso)}>Cobrar</button
+							<button class="btn preset-filled-success-500 btn-sm" onclick={() => openToPay(caso)}
+								>Cobrar</button
 							>
 							<button
 								class="btn preset-filled-secondary-500 btn-sm"

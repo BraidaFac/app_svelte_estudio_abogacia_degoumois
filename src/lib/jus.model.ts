@@ -13,7 +13,7 @@ export async function getJusValue(): Promise<number | undefined> {
 	const jus = await db.currency.findUnique({
 		where: { name: 'JUS' }
 	});
-	return jus?.value;
+	return jus?.value.toNumber();
 }
 
 /**
@@ -27,5 +27,5 @@ export async function setJusValue(value: number): Promise<number> {
 		update: { value },
 		create: { name: 'JUS', value }
 	});
-	return jus.value;
+	return jus.value.toNumber();
 }

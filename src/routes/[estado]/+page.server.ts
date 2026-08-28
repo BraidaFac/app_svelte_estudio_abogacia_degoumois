@@ -1,12 +1,15 @@
 import { getOnTimeCases, getOverDueCases, getSoonDueCases } from '$lib/case.model';
-import type { CaseWithPayments, FormattedCase } from '$lib/types/case.types';
+import type { ClientPayment, FormattedCase } from '$lib/types/case.types';
 import { formatDateToDMY } from '$lib/utils/formatters';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 type CaseStatus = 'VENCIDO' | 'PROXIMO' | 'ATIEMPO';
 
-const caseStatusHandlers: Record<CaseStatus, () => Promise<CaseWithPayments[]>> = {
+const caseStatusHandlers: Record<
+	CaseStatus,
+	() => Promise<import('$lib/types/case.types').CaseWithPayments[]>
+> = {
 	VENCIDO: getOverDueCases,
 	PROXIMO: getSoonDueCases,
 	ATIEMPO: getOnTimeCases
@@ -32,22 +35,31 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		return { user, cases: [] };
 	}
 
-	const cases: FormattedCase[] = rawCases
-		.map((c) => ({
-			...c,
-			quantityPaymentsToPay: c.payments.filter((p) => !p.payment_date).length,
-			dueDate: c.payments.find((p) => p.current)?.due_date
-		}))
-		.sort((a, b) => {
-			const dateA = a.payments.find((p) => p.current)?.due_date;
-			const dateB = b.payments.find((p) => p.current)?.due_date;
-			if (!dateA || !dateB) return 0;
-			return dateA.getTime() - dateB.getTime();
+	const cases = rawCases
+		.map((c) => {
+			const currentPayment = c.payments.find((p) => p.current);
+			const payments: ClientPayment[] = c.payments.map((p) => ({
+				...p,
+				amount: p.amount ? p.amount.toNumber() : null
+			}));
+			return {
+				...c,
+				amount: c.amount.toNumber(),
+				restAmount: c.restAmount.toNumber(),
+				payments,
+				quantityPaymentsToPay: c.payments.filter((p) => !p.payment_date).length,
+				dueDate: currentPayment?.due_date, // keep as Date for sorting
+				_sortMs: currentPayment?.due_date?.getTime() ?? Infinity
+			};
 		})
-		.map((c) => ({
-			...c,
-			dueDate: c.dueDate ? formatDateToDMY(c.dueDate) : undefined
-		}));
+		.sort((a, b) => a._sortMs - b._sortMs)
+		.map((c): FormattedCase => {
+			const { _sortMs, ...rest } = c;
+			return {
+				...rest,
+				dueDate: rest.dueDate ? formatDateToDMY(rest.dueDate as Date) : undefined
+			};
+		});
 
 	return { user, cases };
 };

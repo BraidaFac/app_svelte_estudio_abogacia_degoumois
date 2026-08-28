@@ -1,5 +1,5 @@
 import { classifyCaseByDate, getCasesWithDebt } from '$lib/case.model';
-import type { FormattedCase } from '$lib/types/case.types';
+import type { ClientPayment, FormattedCase } from '$lib/types/case.types';
 import { formatDateToDashDMY } from '$lib/utils/formatters';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
@@ -33,8 +33,16 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 				? formatDateToDashDMY(currentPayment.due_date.toISOString())
 				: undefined;
 
+			const payments: ClientPayment[] = c.payments.map((p) => ({
+				...p,
+				amount: p.amount ? p.amount.toNumber() : null
+			}));
+
 			return {
 				...c,
+				amount: c.amount.toNumber(),
+				restAmount: c.restAmount.toNumber(),
+				payments,
 				quantityPaymentsToPay: c.payments.filter((p) => !p.payment_date).length,
 				dueDate,
 				searchTerms: `${c.description} ${c.type} ${c.clientName}`

@@ -40,7 +40,7 @@ export async function createPayment(caseId: number, paymentData: RegisterPayment
 		throw new Error('Caso no encontrado');
 	}
 
-	const restAmount = Number((caso.restAmount - amount).toFixed(3));
+	const restAmount = parseFloat((caso.restAmount.toNumber() - amount).toFixed(4));
 	const totalPayments = caso.payments.length;
 	const hasNextPayment = paymentNumber < totalPayments;
 
@@ -217,7 +217,7 @@ export async function saldarCase(caseId: number) {
 
 	return db.cases.update({
 		where: { id: caseId },
-		data: { 
+		data: {
 			restAmount: 0,
 			updatedAt: new Date()
 		}
@@ -250,7 +250,14 @@ async function updatePaymentWithNext(
 	const [, , casoUpdated] = await db.$transaction([
 		db.payment.update({
 			where: { payment_number_caseId: { payment_number: paymentNumber, caseId } },
-			data: { amount, typepayment, payment_date: paymentDate, current: false, collector }
+			data: {
+				amount,
+				typepayment,
+				payment_date: paymentDate,
+				current: false,
+				collector,
+				status: 'PAGADA'
+			}
 		}),
 		db.payment.update({
 			where: { payment_number_caseId: { payment_number: paymentNumber + 1, caseId } },
@@ -280,7 +287,14 @@ async function updateFinalPayment(
 	const [, casoUpdated] = await db.$transaction([
 		db.payment.update({
 			where: { payment_number_caseId: { payment_number: paymentNumber, caseId } },
-			data: { amount, typepayment, payment_date: paymentDate, current: false, collector }
+			data: {
+				amount,
+				typepayment,
+				payment_date: paymentDate,
+				current: false,
+				collector,
+				status: 'PAGADA'
+			}
 		}),
 		db.cases.update({
 			where: { id: caseId },
