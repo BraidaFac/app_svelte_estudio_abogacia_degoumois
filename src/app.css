@@ -6,22 +6,169 @@
 
 @variant dark (&:where(.dark, .dark *));
 
+/* ============================================================
+   ESTUDIO RICARDO — Brand Theme Override
+   Palette: deep black · scarlet red · white
+   Display: Cinzel · Body: DM Sans
+   ============================================================ */
+
+[data-theme='wintry'] {
+	/* --- Typography --- */
+	--base-font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+	--base-font-size: inherit;
+	--base-line-height: 1.6;
+	--base-letter-spacing: 0em;
+	--heading-font-family: 'Cinzel', Georgia, serif;
+	--heading-font-weight: 600;
+	--heading-letter-spacing: 0.04em;
+
+	/* --- Primary: Scarlet Red — "rojo escarlata vivo" --- */
+	--color-primary-50: oklch(96% 0.017 27.4deg);
+	--color-primary-100: oklch(91% 0.04 27.4deg);
+	--color-primary-200: oklch(83% 0.09 27.4deg);
+	--color-primary-300: oklch(73% 0.15 27.4deg);
+	--color-primary-400: oklch(62% 0.20 27.4deg);
+	--color-primary-500: oklch(49% 0.24 27.4deg); /* ≈ #CC0000 */
+	--color-primary-600: oklch(42% 0.22 27.4deg);
+	--color-primary-700: oklch(35% 0.19 27.4deg);
+	--color-primary-800: oklch(28% 0.15 27.4deg);
+	--color-primary-900: oklch(20% 0.10 27.4deg);
+	--color-primary-950: oklch(14% 0.07 27.4deg);
+	--color-primary-contrast-dark: var(--color-primary-950);
+	--color-primary-contrast-light: oklch(98% 0 0);
+	--color-primary-contrast-50: var(--color-primary-contrast-dark);
+	--color-primary-contrast-100: var(--color-primary-contrast-dark);
+	--color-primary-contrast-200: var(--color-primary-contrast-dark);
+	--color-primary-contrast-300: var(--color-primary-contrast-dark);
+	--color-primary-contrast-400: var(--color-primary-contrast-dark);
+	--color-primary-contrast-500: var(--color-primary-contrast-light);
+	--color-primary-contrast-600: var(--color-primary-contrast-light);
+	--color-primary-contrast-700: var(--color-primary-contrast-light);
+	--color-primary-contrast-800: var(--color-primary-contrast-light);
+	--color-primary-contrast-900: var(--color-primary-contrast-light);
+	--color-primary-contrast-950: var(--color-primary-contrast-light);
+
+	/* --- Secondary: Charcoal Gray (neutral companion) --- */
+	--color-secondary-50: oklch(96% 0.003 60deg);
+	--color-secondary-100: oklch(90% 0.005 60deg);
+	--color-secondary-200: oklch(80% 0.008 60deg);
+	--color-secondary-300: oklch(68% 0.008 60deg);
+	--color-secondary-400: oklch(55% 0.008 60deg);
+	--color-secondary-500: oklch(43% 0.008 60deg);
+	--color-secondary-600: oklch(34% 0.007 60deg);
+	--color-secondary-700: oklch(26% 0.005 60deg);
+	--color-secondary-800: oklch(19% 0.004 60deg);
+	--color-secondary-900: oklch(13% 0.003 60deg);
+	--color-secondary-950: oklch(9% 0.002 60deg);
+	--color-secondary-contrast-dark: var(--color-secondary-950);
+	--color-secondary-contrast-light: oklch(98% 0 0);
+	--color-secondary-contrast-50: var(--color-secondary-contrast-dark);
+	--color-secondary-contrast-100: var(--color-secondary-contrast-dark);
+	--color-secondary-contrast-200: var(--color-secondary-contrast-dark);
+	--color-secondary-contrast-300: var(--color-secondary-contrast-dark);
+	--color-secondary-contrast-400: var(--color-secondary-contrast-dark);
+	--color-secondary-contrast-500: var(--color-secondary-contrast-light);
+	--color-secondary-contrast-600: var(--color-secondary-contrast-light);
+	--color-secondary-contrast-700: var(--color-secondary-contrast-light);
+	--color-secondary-contrast-800: var(--color-secondary-contrast-light);
+	--color-secondary-contrast-900: var(--color-secondary-contrast-light);
+	--color-secondary-contrast-950: var(--color-secondary-contrast-light);
+
+	/* --- Surface: Pure Black — sin hue azul --- */
+	--color-surface-50: oklch(97.5% 0 0);
+	--color-surface-100: oklch(92% 0 0);
+	--color-surface-200: oklch(83% 0 0);
+	--color-surface-300: oklch(70% 0 0);
+	--color-surface-400: oklch(56% 0 0);
+	--color-surface-500: oklch(43% 0 0);
+	--color-surface-600: oklch(33% 0 0);
+	--color-surface-700: oklch(25% 0 0);
+	--color-surface-800: oklch(17% 0 0);
+	--color-surface-900: oklch(11% 0 0);
+	--color-surface-950: oklch(7% 0 0); /* ≈ #111 */
+	--color-surface-contrast-dark: var(--color-surface-950);
+	--color-surface-contrast-light: oklch(98% 0 0);
+	--color-surface-contrast-50: var(--color-surface-contrast-dark);
+	--color-surface-contrast-100: var(--color-surface-contrast-dark);
+	--color-surface-contrast-200: var(--color-surface-contrast-dark);
+	--color-surface-contrast-300: var(--color-surface-contrast-dark);
+	--color-surface-contrast-400: var(--color-surface-contrast-dark);
+	--color-surface-contrast-500: var(--color-surface-contrast-light);
+	--color-surface-contrast-600: var(--color-surface-contrast-light);
+	--color-surface-contrast-700: var(--color-surface-contrast-light);
+	--color-surface-contrast-800: var(--color-surface-contrast-light);
+	--color-surface-contrast-900: var(--color-surface-contrast-light);
+	--color-surface-contrast-950: var(--color-surface-contrast-light);
+
+	/* --- Background --- */
+	--body-background-color: oklch(97.5% 0 0);
+	--body-background-color-dark: oklch(7% 0 0);
+
+	/* --- Borders & Radius --- */
+	--radius-base: 0.25rem;
+	--radius-container: 0.375rem;
+}
+
+/* ============================================================
+   Global: aplicar fuentes
+   ============================================================ */
+
 html,
 body {
 	@apply h-full;
-	font-family: 'Lato', sans-serif;
+	font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
 }
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	font-family: 'Cinzel', Georgia, serif;
+	letter-spacing: 0.04em;
+}
+
+/* ============================================================
+   Motivo de marca: — TITULO —
+   Uso: <div class="brand-divider">TEXTO</div>
+   ============================================================ */
+
+.brand-divider {
+	display: flex;
+	align-items: center;
+	gap: 0.875rem;
+	font-family: 'Cinzel', Georgia, serif;
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--color-primary-500);
+}
+
+.brand-divider::before,
+.brand-divider::after {
+	content: '';
+	flex: 1;
+	height: 1px;
+	background: currentColor;
+	opacity: 0.35;
+}
+
+/* ============================================================
+   Skeleton component overrides
+   ============================================================ */
 
 .input {
 	@apply focus:ring-2 focus:outline-none;
 }
 
 .label {
-	@apply flex flex-col gap-1 mb-3;
+	@apply mb-3 flex flex-col gap-1;
 }
 
 .table-responsive {
-	@apply overflow-x-auto w-full;
+	@apply w-full overflow-x-auto;
 }
 
 dialog {
@@ -31,6 +178,6 @@ dialog {
 }
 
 dialog::backdrop {
-	background: rgba(0, 0, 0, 0.6);
-	backdrop-filter: blur(3px);
+	background: rgba(0, 0, 0, 0.75);
+	backdrop-filter: blur(4px);
 }
