@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import type { FormattedCase } from '$lib/types/case.types';
+	import type { FormattedCase, ClientPayment } from '$lib/types/case.types';
 	import type { ModalContext } from '$lib/types/modal.types';
-	import type { ClientPayment } from '$lib/types/case.types';
 	import { formatDateToDMY, formatJUS } from '$lib/utils/formatters';
 	import { getContext } from 'svelte';
 
