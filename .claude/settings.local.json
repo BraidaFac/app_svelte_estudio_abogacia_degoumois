@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx --prefix C:/Users/frbra/Desktop/Proyectos/Svelte/estudio_ricardo_project npm-check-updates)",
+      "Bash(npx npm-check-updates:*)",
+      "Read(//c/Users/frbra/Desktop/Proyectos/Svelte/estudio_ricardo_project/$\\(git -C \"C:/Users/frbra/Desktop/Proyectos/Svelte/estudio_ricardo_project\" rev-parse --show-toplevel\\)/.superpowers/sdd/**)",
+      "Bash(npm cache:*)",
+      "Bash([ -f package-lock.json ])",
+      "Bash([ -f pnpm-lock.yaml ])",
+      "Bash(npm test:*)",
+      "Bash(echo \"Command exited with code $?\")",
+      "Bash(npm ls:*)",
+      "Bash(sed:*)",
+      "Bash(export DATABASE_URL=\"mysql://root:1101@localhost:3306/estudio_ricardo\")",
+      "Bash(grep -n \"NewCaseSchema\\\\|PaymentSchema\" src/routes/api/*/+server.ts)",
+      "Bash(grep:*)",
+      "WebFetch(domain:next.skeleton.dev)",
+      "WebFetch(domain:www.skeleton.dev)",
+      "WebFetch(domain:skeleton.dev)",
+      "WebFetch(domain:v3.skeleton.dev)",
+      "WebFetch(domain:v2.skeleton.dev)",
+      "Bash(python:*)",
+      "Bash(DATABASE_URL=\"mysql://root:1101@localhost:3306/estudio_ricardo\" pnpm prisma migrate dev --name decimal_and_schema_improvements)",
+      "Bash(DATABASE_URL=\"mysql://root:1101@localhost:3306/estudio_ricardo\" pnpm prisma migrate dev --name decimal_and_schema_improvements --create-only)",
+      "Bash(DATABASE_URL=\"mysql://root:1101@localhost:3306/estudio_ricardo\" pnpm prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script)",
+      "Bash(DATABASE_URL=\"mysql://root:1101@localhost:3306/estudio_ricardo\" pnpm prisma migrate diff --from-schema-datasource prisma/schema.prisma --to-schema-datamodel prisma/schema.prisma --script)",
+      "Bash(mysql -u root -p1101 estudio_ricardo -e \"SHOW INDEX FROM Cases; SHOW INDEX FROM Payment; SHOW INDEX FROM Currency; DESCRIBE Cases; DESCRIBE Payment;\")",
+      "Bash(mysql:*)",
+      "Bash(DATABASE_URL=\"mysql://root:1101@localhost:3306/estudio_ricardo\" pnpm prisma generate)",
+      "Bash(DATABASE_URL=\"mysql://root:1101@localhost:3306/estudio_ricardo\" pnpm prisma generate --no-engine)",
+      "Read(//tmp/**)",
+      "Bash(npm info:*)",
+      "Bash(npm search:*)",
+      "Bash(npm view:*)",
+      "Bash([ -f prisma/seed.ts ])",
+      "mcp__code-review-graph__query_graph_tool",
+      "Bash(rm src/routes/api/jusValue/+server.ts)",
+      "Bash(rm src/lib/jus.model.ts)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ]
+}

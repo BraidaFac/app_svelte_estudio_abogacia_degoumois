@@ -11,3 +11,6 @@ vite.config.ts.timestamp-*
 
 # Local Netlify folder
 .netlify
+
+# Claude Code local settings (may contain DB credentials)
+.claude/settings.local.json

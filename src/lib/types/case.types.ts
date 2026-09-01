@@ -1,35 +1,43 @@
-/**
- * Tipos centralizados para Cases
- */
-
-import type { Cases, Payment, PaymentType, PaymentStatus, typeCase } from '@prisma/client';
+import type { Cases, Payment, PaymentType, PaymentStatus, typeCase, Currency } from '@prisma/client';
 
 /**
- * Caso con sus pagos incluidos (resultado directo de Prisma — contiene Prisma.Decimal)
- * Solo usar en model layer, NO enviar al cliente directamente.
+ * Raw Prisma result — includes payments and currency relation.
+ * Only used in model layer, never sent to client directly.
  */
 export interface CaseWithPayments extends Cases {
 	payments: Payment[];
+	currency: Currency;
 }
 
 /**
- * Pago con amount convertido a number — seguro para enviar al cliente via SvelteKit
+ * Payment with amount as number — safe for SvelteKit serialization.
  */
 export interface ClientPayment extends Omit<Payment, 'amount'> {
 	amount: number | null;
 }
 
 /**
- * Caso formateado para la UI — todos los campos monetarios como number.
- * Este tipo es el que viaja de +page.server.ts al componente.
+ * Currency info serialized for the client (Decimal → number).
  */
-export interface FormattedCase extends Omit<
-	CaseWithPayments,
-	'amount' | 'restAmount' | 'payments'
-> {
+export interface ClientCurrency {
+	id: number;
+	name: string;
+	value: number;
+	isDefault: boolean;
+}
+
+/**
+ * Formatted case for the UI — all Decimal fields as number.
+ * restAmountPesos is pre-computed server-side (restAmount × currency.value).
+ */
+export interface FormattedCase
+	extends Omit<CaseWithPayments, 'amount' | 'restAmount' | 'payments' | 'currency'> {
 	amount: number;
 	restAmount: number;
+	restAmountPesos: number;
+	closed: boolean;
 	payments: ClientPayment[];
+	currency: ClientCurrency;
 	dueDate?: string;
 	quantityPaymentsToPay: number;
 	searchTerms?: string;
@@ -37,7 +45,7 @@ export interface FormattedCase extends Omit<
 }
 
 /**
- * Datos para crear un nuevo caso
+ * Data to create a new case — currencyId links to Currency table.
  */
 export interface CreateCaseData {
 	description: string;
@@ -47,14 +55,12 @@ export interface CreateCaseData {
 	userId: number;
 	amount: number;
 	restAmount: number;
+	currencyId: number;
 	payments: {
 		create: CreatePaymentData[];
 	};
 }
 
-/**
- * Datos para crear un nuevo pago
- */
 export interface CreatePaymentData {
 	payment_number: number;
 	due_date: Date;
@@ -65,9 +71,6 @@ export interface CreatePaymentData {
 	payment_date?: Date;
 }
 
-/**
- * Datos del formulario de nuevo caso
- */
 export interface NewCaseFormData {
 	description: string;
 	amount: string;
@@ -77,14 +80,12 @@ export interface NewCaseFormData {
 	due_date: string;
 	type: string;
 	period: string;
+	currencyId: string;
 	amount_payment?: string;
 	typepayment?: string;
 	collector?: string;
 }
 
-/**
- * Datos para registrar un pago
- */
 export interface RegisterPaymentData {
 	amount: number;
 	typepayment: PaymentType;
@@ -92,9 +93,6 @@ export interface RegisterPaymentData {
 	collector: string;
 }
 
-/**
- * Pago formateado para la UI (due_date como string)
- */
 export interface FormattedPayment extends Omit<ClientPayment, 'due_date'> {
 	due_date: string;
 }

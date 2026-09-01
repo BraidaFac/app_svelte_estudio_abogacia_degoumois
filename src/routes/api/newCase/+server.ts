@@ -3,9 +3,9 @@
  */
 
 import { saveCase } from '$lib/case.model';
-import { getJusValue } from '$lib/jus.model';
+import { getDefaultCurrency } from '$lib/currency.model';
 import { createErrorResponse } from '$lib/utils/api';
-import type { CreatePaymentData, NewCaseFormData } from '$lib/types/case.types';
+import type { CreatePaymentData } from '$lib/types/case.types';
 import type { typeCase, PaymentType } from '@prisma/client';
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -34,6 +34,7 @@ const NewCaseSchema = z.object({
 	due_date: z.string().min(1),
 	type: z.string().min(1),
 	period: z.enum(['SEMANAL', 'QUINCENAL', 'MENSUAL']),
+	currencyId: z.coerce.number().int().positive().optional(),
 	amount_payment: z.string().optional(),
 	typepayment: z.string().optional(),
 	collector: z.string().optional()
@@ -50,16 +51,11 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		throw redirect(302, '/login');
 	}
 
-	const jusValue = await getJusValue();
-	if (!jusValue) {
-		return createErrorResponse('No se pudo obtener el valor del JUS', 500);
-	}
-
 	const rawData = await request.json();
 
-	let data: NewCaseFormData;
+	let data: z.infer<typeof NewCaseSchema>;
 	try {
-		data = NewCaseSchema.parse(rawData) as NewCaseFormData;
+		data = NewCaseSchema.parse(rawData);
 	} catch (error) {
 		if (error instanceof ZodError) {
 			return createErrorResponse(error.errors[0]?.message ?? 'Datos inválidos', 400);
@@ -67,8 +63,17 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		return createErrorResponse('Datos inválidos', 400);
 	}
 
+	// Resolve currency — use provided currencyId or fall back to default
+	let resolvedCurrencyId: number;
+	if (rawData.currencyId) {
+		resolvedCurrencyId = Number(rawData.currencyId);
+	} else {
+		const defaultCurrency = await getDefaultCurrency();
+		resolvedCurrencyId = defaultCurrency.id;
+	}
+
 	try {
-		const caso = buildCaseData(data, user.id, jusValue);
+		const caso = buildCaseData(data, user.id, resolvedCurrencyId);
 		const response = await saveCase(caso);
 		return new Response(JSON.stringify(response), { status: 201 });
 	} catch (error) {
@@ -81,7 +86,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 // HELPER FUNCTIONS
 // ============================================
 
-function buildCaseData(data: NewCaseFormData, userId: number, jusValue: number) {
+function buildCaseData(data: z.infer<typeof NewCaseSchema>, userId: number, currencyId: number) {
 	const {
 		description,
 		amount,
@@ -96,23 +101,25 @@ function buildCaseData(data: NewCaseFormData, userId: number, jusValue: number) 
 		period
 	} = data;
 
-	const amountPaymentClean = amount_payment
+	// amount is already in native currency (JUS, USD, or EUR)
+	const amountNative = parseFloat(amount.replace(',', '.'));
+	const amountPaymentNative = amount_payment
 		? parseFloat(amount_payment.replaceAll('.', ''))
 		: undefined;
-	const amountJus = parseFloat(amount.replace(',', '.'));
+
 	const payments = buildPayments(
 		parseInt(quantity_payment, 10),
 		due_date,
 		period,
 		typepayment,
 		collector,
-		amountPaymentClean,
-		jusValue
+		amountPaymentNative
 	);
 
-	const restAmount = amountPaymentClean
-		? parseFloat((amountJus - amountPaymentClean / jusValue).toFixed(3))
-		: parseFloat(amountJus.toFixed(3));
+	// restAmount is in native currency — direct subtraction, no rate conversion
+	const restAmount = amountPaymentNative
+		? parseFloat((amountNative - amountPaymentNative).toFixed(3))
+		: amountNative;
 
 	return {
 		description,
@@ -120,8 +127,9 @@ function buildCaseData(data: NewCaseFormData, userId: number, jusValue: number) 
 		clientName,
 		clientPhone,
 		userId,
+		currencyId,
 		payments: { create: payments },
-		amount: amountJus,
+		amount: amountNative,
 		restAmount
 	};
 }
@@ -132,23 +140,20 @@ function buildPayments(
 	period: string,
 	typepayment?: string,
 	collector?: string,
-	amountPayment?: number,
-	jusValue?: number
+	amountPayment?: number
 ): CreatePaymentData[] {
 	return Array.from({ length: quantity }, (_, i) => {
 		const dueDate = calculateDueDate(startDate, period, i);
 		const isFirstPayment = i === 0;
 		const hasInitialPayment = Boolean(amountPayment);
-
 		return {
 			payment_number: i + 1,
 			due_date: dueDate,
 			typepayment: typepayment && isFirstPayment ? (typepayment as PaymentType) : undefined,
 			collector: collector && isFirstPayment ? collector : undefined,
+			// amount already in native currency — no conversion needed
 			amount:
-				amountPayment && isFirstPayment && jusValue
-					? parseFloat((amountPayment / jusValue).toFixed(3))
-					: undefined,
+				amountPayment && isFirstPayment ? parseFloat(amountPayment.toFixed(3)) : undefined,
 			current: (isFirstPayment && !hasInitialPayment) || (i === 1 && hasInitialPayment),
 			payment_date: isFirstPayment && hasInitialPayment ? dueDate : undefined
 		};

@@ -4,7 +4,8 @@
 	import BurgerBar from '$lib/components/BurgerBar.svelte';
 	import ModalForm from '$lib/components/ModalForm.svelte';
 	import ModalToPay from '$lib/components/ModalToPay.svelte';
-	import ModalJus from '$lib/components/ModalJus.svelte';
+	import ModalCurrencies from '$lib/components/ModalCurrencies.svelte';
+	import ModalConverter from '$lib/components/ModalConverter.svelte';
 	import ModalDetalles from '$lib/components/ModalDetalles.svelte';
 	import type { LayoutData } from './$types';
 	import type { FormattedCase } from '$lib/types/case.types';
@@ -16,7 +17,8 @@
 
 	let formDialog = $state<HTMLDialogElement | undefined>();
 	let toPayDialog = $state<HTMLDialogElement | undefined>();
-	let jusDialog = $state<HTMLDialogElement | undefined>();
+	let currenciesDialog = $state<HTMLDialogElement | undefined>();
+	let converterDialog = $state<HTMLDialogElement | undefined>();
 	let detailsDialog = $state<HTMLDialogElement | undefined>();
 	let activeCaso = $state<FormattedCase | null>(null);
 
@@ -26,45 +28,57 @@
 			activeCaso = caso;
 			toPayDialog?.showModal();
 		},
-		openJus: () => jusDialog?.showModal(),
+		openCurrencies: () => currenciesDialog?.showModal(),
 		openDetails: (caso: FormattedCase) => {
 			activeCaso = caso;
 			detailsDialog?.showModal();
-		}
+		},
+		openConverter: () => converterDialog?.showModal()
 	});
 </script>
 
 <ModalForm bind:dialog={formDialog} />
 <ModalToPay bind:dialog={toPayDialog} caso={activeCaso} />
-<ModalJus bind:dialog={jusDialog} />
+<ModalCurrencies bind:dialog={currenciesDialog} />
+<ModalConverter bind:dialog={converterDialog} />
 <ModalDetalles bind:dialog={detailsDialog} caso={activeCaso} />
 
-<nav class="nav-bar flex items-center justify-between border-b border-surface-300-700 px-4 py-3 md:px-6 md:py-4">
-	<a href="/" class="flex-shrink-0">
-		<h1 class="title text-2xl md:text-3xl lg:text-4xl">Estudio Degoumois</h1>
-	</a>
+{#if user}
+	<nav class="nav-bar flex items-center justify-between px-5 py-3 md:px-8 md:py-4">
+		<a href="/" class="flex-shrink-0 no-underline">
+			<span class="nav-title">Estudio Degoumois</span>
+		</a>
 
-	<div class="flex items-center gap-3 md:gap-6">
-		{#if user}
+		<div class="flex items-center gap-3 md:gap-5">
 			<button
-				class="btn preset-tonal-success btn-sm md:btn-md hidden sm:inline-flex"
+				class="btn btn-primary btn-sm hidden sm:inline-flex"
 				onclick={(e) => {
 					e.preventDefault();
 					formDialog?.showModal();
-				}}>Nuevo Caso</button
+				}}
 			>
-			<span class="hidden md:inline text-sm opacity-75">Hola, {user.name}</span>
+				Nuevo Caso
+			</button>
+			<span class="hidden text-sm opacity-60 md:inline">{user.name}</span>
 			<BurgerBar {user} />
-		{/if}
-	</div>
-</nav>
+		</div>
+	</nav>
+{/if}
 
 {@render children()}
 
 <style>
-	.title {
-		font-family: 'Cinzel', serif;
-		font-optical-sizing: auto;
-		font-style: normal;
+	.nav-title {
+		font-family: 'Cinzel', Georgia, serif;
+		font-size: 1.25rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		color: #f5f5f5;
+	}
+
+	@media (min-width: 768px) {
+		.nav-title {
+			font-size: 1.5rem;
+		}
 	}
 </style>

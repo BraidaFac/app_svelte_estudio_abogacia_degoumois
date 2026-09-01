@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { addThousandSeparator } from '$lib/utils/formatters';
+	import { toARS } from '$lib/utils/currency';
 	import { validateOrThrow, manageFormError } from '$lib/utils/form';
 	import { paymentSchema } from '$lib/components/paymentSchema';
 	import { PaymentType } from '$lib/utils/paymentsTypes';
 	import { invalidate } from '$app/navigation';
 	import type { FormattedCase } from '$lib/types/case.types';
+	import { X } from '@lucide/svelte';
 
 	let {
 		dialog = $bindable<HTMLDialogElement | undefined>(),
@@ -13,17 +15,21 @@
 	}: { dialog?: HTMLDialogElement; caso: FormattedCase | null } = $props();
 
 	let loading = $state(false);
-	let input_JUS = $state<HTMLInputElement | undefined>();
-	let input_PESOS = $state<HTMLInputElement | undefined>();
+	let input_native = $state<HTMLInputElement | undefined>();
+	let input_pesos = $state<HTMLInputElement | undefined>();
 	let case_form = $state<HTMLFormElement | undefined>();
 	let response_state = $state<number | undefined>();
 	let formErrors = $state<{ errors: Record<string, string | undefined | string[]> } | undefined>();
 
-	const { jus_value, user } = page.data;
+	const { user } = page.data;
 
 	$effect(() => {
-		if (caso && input_JUS && input_PESOS) {
-			calculatePayment();
+		if (caso && input_native && input_pesos) {
+			// Last payment: lock to restAmount in native currency
+			input_native!.value = caso.restAmount.toFixed(3).replace(/\./, ',');
+			input_pesos!.value = addThousandSeparator(
+				Math.round(toARS(caso.restAmount, caso.currency.value))
+			);
 		}
 	});
 
@@ -40,9 +46,7 @@
 			});
 			response_state = response.status;
 			loading = false;
-			if (response.status === 200 && page.url.pathname === '/') {
-				invalidate('update:cases');
-			}
+			if (response.status === 200 && page.url.pathname === '/') { invalidate('update:cases'); }
 		} catch (error) {
 			loading = false;
 			formErrors = { errors: manageFormError(error) };
@@ -52,49 +56,39 @@
 	function onInputTransform(event: Event) {
 		if (!caso) return;
 		const input = event.target as HTMLInputElement;
-		if (input === input_PESOS) {
+		const { currency } = caso;
+
+		if (input === input_pesos) {
 			input.value = addThousandSeparator(+input.value.replace(/\./g, ''));
 		}
-		const value =
-			input.value.includes('.') && input === input_PESOS
-				? +(input.value.replace(/\./g, ''))
-				: input.value.includes('.') && input === input_JUS
-					? +input.value.replace(/\./, ',')
-					: +(input.value.replace(/,/g, '.'));
-		if (isNaN(value)) {
-			input.value = input.value.slice(0, -1);
-			return;
-		}
-		if (caso.quantityPaymentsToPay === 1) {
-			input_JUS!.value = caso.restAmount.toFixed(3).replace(/\./, ',');
-			input_PESOS!.value = addThousandSeparator(+(+caso.restAmount * jus_value).toFixed(0));
-			return;
-		}
-		if (!value) {
-			input_JUS!.value = '';
-			input_PESOS!.value = '';
-			return;
-		}
-		if (input === input_JUS) {
-			input_PESOS!.value = addThousandSeparator(+(value * jus_value).toFixed(0));
-		} else if (input === input_PESOS) {
-			input_JUS!.value = (value / jus_value).toFixed(3).replace(/\./, ',');
-		}
-	}
 
-	function verifyPayment(e: Event) {
-		if (!caso) return;
-		if (e.target === input_JUS) {
-			const amount = +(input_JUS!.value.replace(/\./g, ','));
-			if (amount > caso.restAmount) {
-				input_JUS!.value = caso.restAmount.toFixed(3).replace(/\./g, ',');
-				input_PESOS!.value = addThousandSeparator(+(+caso.restAmount * jus_value).toFixed(0));
+		const value = input === input_pesos
+			? +input.value.replace(/\./g, '')
+			: +input.value.replace(/,/g, '.');
+
+		if (isNaN(value)) { input.value = input.value.slice(0, -1); return; }
+
+		if (caso.quantityPaymentsToPay === 1) {
+			// Lock to restAmount
+			input_native!.value = caso.restAmount.toFixed(3).replace(/\./, ',');
+			input_pesos!.value = addThousandSeparator(Math.round(toARS(caso.restAmount, currency.value)));
+			return;
+		}
+
+		if (!value) { input_native!.value = ''; input_pesos!.value = ''; return; }
+
+		if (input === input_pesos) {
+			const nativeVal = value / currency.value;
+			if (nativeVal > caso.restAmount) {
+				input_native!.value = caso.restAmount.toFixed(3).replace(/\./, ',');
+				input_pesos!.value = addThousandSeparator(Math.round(toARS(caso.restAmount, currency.value)));
+			} else {
+				input_native!.value = nativeVal.toFixed(3).replace(/\./, ',');
 			}
-		} else {
-			const amount_pesos = input_PESOS!.value.replace(/\./g, '');
-			if (+(+amount_pesos / jus_value).toFixed(3) > +caso.restAmount.toFixed(3)) {
-				input_PESOS!.value = (caso.restAmount * jus_value).toFixed(0);
-			}
+		} else if (input === input_native) {
+			const capped = Math.min(value, caso.restAmount);
+			input_native!.value = capped.toFixed(3).replace(/\./, ',');
+			input_pesos!.value = addThousandSeparator(Math.round(toARS(capped, currency.value)));
 		}
 	}
 
@@ -103,168 +97,105 @@
 		return caso.payments.length - caso.quantityPaymentsToPay + 1;
 	}
 
-	function calculatePayment() {
-		if (!caso || !input_JUS || !input_PESOS) return;
-		const quantityPaymentToPay = caso.quantityPaymentsToPay;
-		const amountToPay = caso.restAmount;
-		const amountJus =
-			quantityPaymentToPay === 1
-				? amountToPay.toFixed(3)
-				: (amountToPay / quantityPaymentToPay).toFixed(3);
-		input_JUS.value = amountJus.replace(/\./, ',');
-		input_PESOS.value = addThousandSeparator(+(+amountJus * jus_value).toFixed(0));
-	}
-
 	function handleClose() {
 		dialog?.close();
 		response_state = undefined;
 		formErrors = undefined;
 		loading = false;
 	}
-
-	const cBase = 'card p-4 shadow-xl space-y-4';
-	const cHeader = 'text-2xl font-bold text-center';
-	const cForm = 'border border-surface-500 p-4 space-y-4 rounded-xl';
 </script>
 
 <dialog bind:this={dialog}>
-	<div
-		class="modal-example-form overflow-y-auto {cBase} {response_state
-			? 'w-1/3'
-			: loading
-				? 'w-1/3'
-				: 'w-3/4'}"
-	>
+	<div class="modal-panel" style="width: min(90vw, 48rem);">
+		<div class="modal-header">
+			<h2 class="modal-title">Registrar cobro</h2>
+			<button class="modal-icon-btn" onclick={handleClose} aria-label="Cerrar"><X size={18} /></button>
+		</div>
+
 		{#if caso}
 			{#if !response_state}
-				<header class={cHeader}>Cobrar</header>
 				{#if loading}
-					<div class="flex flex-row justify-center h-22">
-						<div
-							class="size-14 animate-spin rounded-full border-4 border-surface-300-700 border-t-primary-500"
-						></div>
-					</div>
+					<div class="spinner-wrap"><div class="er-spinner"></div></div>
 				{:else}
-					<form class="modal-form {cForm}" bind:this={case_form}>
+					<form class="form-section" bind:this={case_form}>
 						<input hidden type="text" name="caseId" value={caso.id} />
-						<div class="grid grid-cols-2 gap-4">
-							<label class="label">
+						<input type="hidden" name="amount" value={input_native?.value} />
+						<div class="form-grid">
+							<div class="label">
 								<span>Cliente</span>
 								<input autocomplete="off" class="input" readonly type="text" value={caso.clientName} />
-							</label>
-							<label class="label">
-								<span>Observacion</span>
-								<input
-									autocomplete="off"
-									class="input"
-									readonly
-									type="text"
-									value={caso.description}
-								/>
-							</label>
-							<label class="label">
-								<span>Cuota numero</span>
-								<input
-									autocomplete="off"
-									class="input"
-									name="paymentNumber"
-									readonly
-									type="text"
-									value={calculatePaymentNumber()}
-								/>
-							</label>
-							<label class="label">
-								<span>Total JUS</span>
-								<input
-									autocomplete="off"
-									class="input"
-									readonly
-									type="text"
-									value={`${caso.amount.toFixed(2).replace('.', ',')}`}
-								/>
-							</label>
-							<label class="label">
-								<span>Adeuda JUS</span>
-								<input
-									autocomplete="off"
-									class="input text-red-500"
-									readonly
-									type="text"
-									value={`${caso.restAmount.toFixed(3).replace('.', ',')}`}
-								/>
-							</label>
-							<label class="label">
-								<span>Cantidad de JUS</span>
-								<input
-									autocomplete="off"
-									class="input"
-									bind:this={input_JUS}
-									oninput={(e) => {
-										verifyPayment(e);
-										onInputTransform(e);
-									}}
-									type="text"
-									placeholder="JUS"
-									name="amount"
-								/>
-								{#if formErrors?.errors?.['amount']}
-									<span class="text-red-600">{formErrors.errors['amount']}</span>
+							</div>
+							<div class="label">
+								<span>Observación</span>
+								<input autocomplete="off" class="input" readonly type="text" value={caso.description} />
+							</div>
+							<div class="label">
+								<span>Cuota N°</span>
+								<input autocomplete="off" class="input" name="paymentNumber" readonly type="text" value={calculatePaymentNumber()} />
+							</div>
+							<div class="label">
+								<span>Total {caso.currency.name}</span>
+								<input autocomplete="off" class="input" readonly type="text" value={caso.amount.toFixed(2).replace('.', ',')} />
+							</div>
+							<div class="label">
+								<span>Adeuda {caso.currency.name}</span>
+								<input autocomplete="off" class="input" readonly type="text" value={caso.restAmount.toFixed(3).replace('.', ',')} style="color: #ff6b5e;" />
+							</div>
+							<div class="label">
+								<span>{caso?.currency.name ?? 'Monto'}</span>
+								<input autocomplete="off" class="input" bind:this={input_native} oninput={onInputTransform} type="text" placeholder={caso.currency.name} />
+								{#if formErrors?.errors?.['amount']}<span class="text-error">{formErrors.errors['amount']}</span>{/if}
+								{#if caso?.currency.name !== 'ARS'}
+									<p style="font-size: 0.8rem; opacity: 0.6; margin-top: 0.25rem;">
+										≈ {input_pesos?.value} pesos
+									</p>
 								{/if}
-							</label>
-							<label class="label">
+							</div>
+							<div class="label">
 								<span>Pesos</span>
-								<input
-									autocomplete="off"
-									class="input"
-									type="text"
-									bind:this={input_PESOS}
-									oninput={(e) => {
-										verifyPayment(e);
-										onInputTransform(e);
-									}}
-									placeholder="PESOS"
-								/>
-							</label>
-							<label class="label">
-								<span>Metodo de pago</span>
+								<input autocomplete="off" class="input" type="text" bind:this={input_pesos} oninput={onInputTransform} placeholder="$ PESOS" />
+							</div>
+							<div class="label">
+								<span>Método de pago</span>
 								<select class="select" name="typepayment">
-									{#each Object.keys(PaymentType) as type}
-										<option value={type}>{type}</option>
-									{/each}
+									{#each Object.keys(PaymentType) as type}<option value={type}>{type}</option>{/each}
 								</select>
-							</label>
-							<label class="label">
+							</div>
+							<div class="label">
 								<span>Cobrador</span>
-								<input
-									autocomplete="off"
-									class="input"
-									type="text"
-									name="collector"
-									placeholder="Cobrador"
-									value={user.name}
-									readonly
-								/>
-							</label>
+								<input autocomplete="off" class="input" type="text" name="collector" value={user.name} readonly />
+							</div>
 						</div>
-						<button class="btn preset-filled-success-500" onclick={onFormSubmit}>Pagar</button>
+						<div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+							<button class="btn btn-success" onclick={(e) => { e.preventDefault(); onFormSubmit(); }}>
+								Registrar pago
+							</button>
+						</div>
 					</form>
 				{/if}
 			{:else if response_state === 200}
-				<div>
-					<p class="text-green-600 text-center">Pago generado correctamente</p>
-				</div>
-				<div class="flex flex-row justify-center gap-3">
-					<button class="btn preset-filled-success-500" onclick={handleClose}>Salir</button>
+				<p class="text-success-msg" style="text-align: center; padding: 1.5rem 0;">Pago registrado correctamente</p>
+				<div style="display: flex; justify-content: flex-end;">
+					<button class="btn btn-success" onclick={handleClose}>Cerrar</button>
 				</div>
 			{:else}
-				<p class="text-red-600 text-center">Hubo un error. Intente nuevamente</p>
-				<div class="flex flex-row justify-center gap-3">
-					<button class="btn preset-filled-error-500" onclick={() => (response_state = undefined)}
-						>Reintentar</button
-					>
-					<button class="btn preset-filled-warning-500" onclick={handleClose}>Salir</button>
+				<p class="text-error" style="text-align: center; padding: 1.5rem 0;">Hubo un error. Intente nuevamente</p>
+				<div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+					<button class="btn btn-danger" onclick={() => (response_state = undefined)}>Reintentar</button>
+					<button class="btn btn-ghost" onclick={handleClose}>Salir</button>
 				</div>
 			{/if}
 		{/if}
 	</div>
 </dialog>
+
+<style>
+	.form-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0 1.25rem;
+	}
+	@media (max-width: 600px) {
+		.form-grid { grid-template-columns: 1fr; }
+	}
+</style>

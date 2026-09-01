@@ -29,12 +29,17 @@ model Cases {
   clientPhone String
   amount      Decimal   @db.Decimal(12, 4)
   restAmount  Decimal   @db.Decimal(12, 4)
+  closed      Boolean   @default(false)
   payments    Payment[]
   type        typeCase
   caseNumber  String?   @unique @db.VarChar(50)
+  currencyId  Int       @default(1)
+  currency    Currency  @relation(fields: [currencyId], references: [id])
 
   @@index([userId])
   @@index([restAmount])
+  @@index([closed])
+  @@index([currencyId])
 }
 
 model Payment {
@@ -55,9 +60,11 @@ model Payment {
 }
 
 model Currency {
-  id    Int     @id @default(autoincrement())
-  name  String  @unique
-  value Decimal @db.Decimal(12, 4)
+  id        Int     @id @default(autoincrement())
+  name      String  @unique
+  value     Decimal @db.Decimal(12, 4)
+  isDefault Boolean @default(false)
+  cases     Cases[]
 }
 
 enum Role {

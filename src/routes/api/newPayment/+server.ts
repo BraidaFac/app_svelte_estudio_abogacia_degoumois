@@ -3,7 +3,6 @@
  */
 
 import { createPayment } from '$lib/case.model';
-import { getJusValue } from '$lib/jus.model';
 import { createErrorResponse } from '$lib/utils/api';
 import type { PaymentType } from '@prisma/client';
 import { redirect } from '@sveltejs/kit';
@@ -29,11 +28,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		throw redirect(302, '/login');
 	}
 
-	const jusValue = await getJusValue();
-	if (!jusValue) {
-		return createErrorResponse('No se pudo obtener el valor del JUS', 500);
-	}
-
 	const rawData = await request.json();
 
 	let data: z.infer<typeof PaymentSchema>;
@@ -49,14 +43,14 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	const { caseId, amount, typepayment, paymentNumber, collector } = data;
 
 	try {
-		const amountJus = parseFloat(amount.replace(',', '.'));
+		// amount arrives in native currency from ModalToPay — parse directly
+		const amountNative = parseFloat(amount.replace(',', '.'));
 		const response = await createPayment(parseInt(caseId, 10), {
-			amount: parseFloat(amountJus.toFixed(3)),
+			amount: parseFloat(amountNative.toFixed(3)),
 			typepayment: typepayment as PaymentType,
 			paymentNumber: parseInt(paymentNumber, 10),
 			collector
 		});
-
 		return new Response(JSON.stringify({ response }), { status: 200 });
 	} catch (error) {
 		console.error('Error creating payment:', error);

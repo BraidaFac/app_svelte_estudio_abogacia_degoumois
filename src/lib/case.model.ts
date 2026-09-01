@@ -33,7 +33,7 @@ export async function createPayment(caseId: number, paymentData: RegisterPayment
 
 	const caso = await db.cases.findUnique({
 		where: { id: caseId },
-		include: { payments: true }
+		include: { payments: true, currency: true }
 	});
 
 	if (!caso) {
@@ -78,8 +78,8 @@ export async function createPayment(caseId: number, paymentData: RegisterPayment
 export async function getCasesWithDebt(): Promise<CaseWithPayments[]> {
 	try {
 		return db.cases.findMany({
-			where: { restAmount: { gt: 0 } },
-			include: { payments: true }
+			where: { closed: false },
+			include: { payments: true, currency: true }
 		});
 	} catch (error) {
 		console.error('Error fetching cases with debt:', error);
@@ -88,14 +88,14 @@ export async function getCasesWithDebt(): Promise<CaseWithPayments[]> {
 }
 
 /**
- * Obtiene todos los casos completamente pagados
- * @returns Lista de casos con restAmount = 0
+ * Obtiene todos los casos cerrados (historial)
+ * @returns Lista de casos con closed = true
  */
 export async function getCases(): Promise<CaseWithPayments[]> {
 	try {
 		return db.cases.findMany({
-			where: { restAmount: { equals: 0 } },
-			include: { payments: true }
+			where: { closed: true },
+			include: { payments: true, currency: true }
 		});
 	} catch (error) {
 		console.error('Error fetching completed cases:', error);
@@ -207,21 +207,47 @@ export async function deleteCase(caseId: number) {
  * @returns El caso actualizado
  */
 export async function saldarCase(caseId: number) {
-	const caso = await db.cases.findUnique({
-		where: { id: caseId }
-	});
-
-	if (!caso) {
-		throw new Error('Caso no encontrado');
-	}
+	const caso = await db.cases.findUnique({ where: { id: caseId }, include: { currency: true } });
+	if (!caso) throw new Error('Caso no encontrado');
 
 	return db.cases.update({
 		where: { id: caseId },
-		data: {
-			restAmount: 0,
-			updatedAt: new Date()
-		}
+		data: { restAmount: 0, closed: true, updatedAt: new Date() }
 	});
+}
+
+/**
+ * Cierra un caso marcando todos los pagos pendientes como cobrados
+ * @param caseId - ID del caso
+ * @param collector - Nombre del cobrador
+ */
+export async function closeCase(caseId: number, collector: string) {
+	const caso = await db.cases.findUnique({
+		where: { id: caseId },
+		include: { payments: true, currency: true }
+	});
+	if (!caso) throw new Error('Caso no encontrado');
+
+	const today = new Date();
+	const pendingPayments = caso.payments.filter((p) => !p.payment_date);
+
+	await db.$transaction([
+		...pendingPayments.map((p) =>
+			db.payment.update({
+				where: { payment_number_caseId: { payment_number: p.payment_number, caseId } },
+				data: {
+					payment_date: today,
+					collector,
+					current: false,
+					status: 'PAGADA'
+				}
+			})
+		),
+		db.cases.update({
+			where: { id: caseId },
+			data: { restAmount: 0, closed: true, updatedAt: today }
+		})
+	]);
 }
 
 // ============================================

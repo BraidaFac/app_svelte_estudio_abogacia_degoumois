@@ -4,6 +4,7 @@
 	import type { ModalContext } from '$lib/types/modal.types';
 	import { formatDateToDMY, formatJUS } from '$lib/utils/formatters';
 	import { getContext } from 'svelte';
+	import { X, MoreVertical, CheckCircle2, Trash2, PackageCheck } from '@lucide/svelte';
 
 	let {
 		dialog = $bindable<HTMLDialogElement | undefined>(),
@@ -13,17 +14,14 @@
 	const { openToPay } = getContext<ModalContext>('modals');
 
 	let menuOpen = $state(false);
-	let view = $state<'main' | 'confirmSaldar' | 'confirmDelete'>('main');
+	let view = $state<'main' | 'confirmSaldar' | 'confirmDelete' | 'confirmCerrar'>('main');
 	let actionResult = $state<{ success: boolean; message: string } | null>(null);
 	let actionLoading = $state(false);
+	let collectorInput = $state('');
 
 	$effect(() => {
 		if (dialog) {
-			const handleOpen = () => {
-				view = 'main';
-				actionResult = null;
-				menuOpen = false;
-			};
+			const handleOpen = () => { view = 'main'; actionResult = null; menuOpen = false; collectorInput = ''; };
 			dialog.addEventListener('show', handleOpen);
 			return () => dialog?.removeEventListener('show', handleOpen);
 		}
@@ -31,19 +29,13 @@
 
 	$effect(() => {
 		const handleClick = (e: MouseEvent) => {
-			const target = e.target as HTMLElement;
-			if (!target.closest('.menu-container')) {
-				menuOpen = false;
-			}
+			if (!(e.target as HTMLElement).closest('.menu-container')) { menuOpen = false; }
 		};
 		setTimeout(() => document.addEventListener('click', handleClick), 0);
 		return () => document.removeEventListener('click', handleClick);
 	});
 
-	function toggleMenu(e: Event) {
-		e.stopPropagation();
-		menuOpen = !menuOpen;
-	}
+	function toggleMenu(e: Event) { e.stopPropagation(); menuOpen = !menuOpen; }
 
 	function handleCobrar() {
 		if (!caso) return;
@@ -60,10 +52,26 @@
 		const response = await fetch('/api/updateCase', { method: 'POST', body: data });
 		actionLoading = false;
 		if (response.status !== 200) {
-			const error = (await response.json()).error?.message || 'Error al saldar caso';
-			actionResult = { success: false, message: error };
+			actionResult = { success: false, message: (await response.json()).error?.message || 'Error al saldar caso' };
 		} else {
-			actionResult = { success: true, message: 'Se ha saldado el caso correctamente' };
+			actionResult = { success: true, message: 'Caso saldado correctamente' };
+			invalidateAll();
+		}
+	}
+
+	async function handleCerrar() {
+		if (!caso || !collectorInput.trim()) return;
+		actionLoading = true;
+		const data = new FormData();
+		data.append('caseId', caso.id.toString());
+		data.append('action', 'cerrar');
+		data.append('collector', collectorInput.trim());
+		const response = await fetch('/api/updateCase', { method: 'POST', body: data });
+		actionLoading = false;
+		if (response.status !== 200) {
+			actionResult = { success: false, message: (await response.json()).error?.message || 'Error al cerrar caso' };
+		} else {
+			actionResult = { success: true, message: 'Caso cerrado correctamente' };
 			invalidateAll();
 		}
 	}
@@ -76,10 +84,9 @@
 		const response = await fetch('/historial', { method: 'POST', body: data });
 		actionLoading = false;
 		if (response.status !== 200) {
-			const error = (await response.json()).error.message;
-			actionResult = { success: false, message: error };
+			actionResult = { success: false, message: (await response.json()).error.message };
 		} else {
-			actionResult = { success: true, message: 'Se ha eliminado el caso correctamente' };
+			actionResult = { success: true, message: 'Caso eliminado correctamente' };
 			invalidateAll();
 		}
 	}
@@ -90,169 +97,233 @@
 
 	let payments = $derived<FormattedPaymentDisplay[]>(
 		caso
-			? caso.restAmount > 0
-				? caso.payments.map((p: ClientPayment) => ({ ...p, due_date: formatDateToDMY(p.due_date) }))
-				: caso.payments
-						.filter((p: ClientPayment) => p.payment_date)
-						.map((p: ClientPayment) => ({ ...p, due_date: formatDateToDMY(p.due_date) }))
+			? caso.payments.map((p: ClientPayment) => ({ ...p, due_date: formatDateToDMY(p.due_date) }))
 			: []
 	);
 
-	const cBase = 'card p-6 w-full max-w-4xl shadow-xl space-y-4';
-	const cHeader = 'text-2xl font-bold text-center';
-	const cDiv = 'border border-surface-500 p-4 rounded-xl overflow-x-auto';
+	let pendingCount = $derived(caso ? caso.payments.filter((p) => !p.payment_date).length : 0);
 </script>
 
 <dialog bind:this={dialog}>
 	{#if caso}
-		<div class="modal-example-form overflow-y-auto {cBase}">
+		<div class="modal-panel" style="width: min(90vw, 54rem);">
 			{#if view === 'main'}
-				<header class="relative {cHeader}">
-					<span>Detalles: {caso.description}</span>
-					<div class="menu-container absolute top-0 right-0">
-						<button
-							class="hover:bg-surface-200-800 rounded p-2 transition-colors"
-							onclick={toggleMenu}
-							aria-label="Opciones"
-						>
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="h-6 w-6"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-							>
-								<circle cx="12" cy="5" r="1.5" fill="currentColor" />
-								<circle cx="12" cy="12" r="1.5" fill="currentColor" />
-								<circle cx="12" cy="19" r="1.5" fill="currentColor" />
-							</svg>
+				<div class="modal-header">
+					<h2 class="modal-title">{caso.description}</h2>
+					<div class="menu-container">
+						<button class="modal-icon-btn" onclick={toggleMenu} aria-label="Opciones">
+							<MoreVertical size={18} />
 						</button>
 						{#if menuOpen}
-							<div class="card absolute right-0 z-10 mt-2 w-48 shadow-lg">
-								<div class="space-y-1 p-2" role="menu" aria-orientation="vertical">
-									<button
-										class="btn hover:bg-surface-200-800 w-full justify-start text-sm transition-colors"
-										onclick={() => {
-											menuOpen = false;
-											view = 'confirmSaldar';
-										}}
-									>
-										Saldar
-									</button>
-									<button
-										class="btn text-error-500 hover:bg-surface-200-800 w-full justify-start text-sm transition-colors"
-										onclick={() => {
-											menuOpen = false;
-											view = 'confirmDelete';
-										}}
-									>
-										Eliminar caso
-									</button>
-								</div>
+							<div class="dropdown-content">
+								<button class="dropdown-item" onclick={() => { menuOpen = false; view = 'confirmCerrar'; }}>
+									<PackageCheck size={14} />
+									Cobrar todo
+								</button>
+								<button class="dropdown-item" onclick={() => { menuOpen = false; view = 'confirmSaldar'; }}>
+									<CheckCircle2 size={14} />
+									Saldar caso
+								</button>
+								<div class="dropdown-separator"></div>
+								<button class="dropdown-item danger" onclick={() => { menuOpen = false; view = 'confirmDelete'; }}>
+									<Trash2 size={14} />
+									Eliminar caso
+								</button>
 							</div>
 						{/if}
 					</div>
-				</header>
+					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar">
+						<X size={18} />
+					</button>
+				</div>
 
-				<div class={cDiv}>
-					<div
-						class="border-surface-300 grid grid-cols-[1fr_1fr_1.5fr_1fr] gap-4 border-b pb-3 text-sm font-semibold"
-					>
-						<div class="text-center">Cuota</div>
-						<div class="text-center">Fecha</div>
-						<div class="text-center">Cobrador</div>
-						<div class="text-center">Monto/Acción</div>
+				<!-- Info del caso -->
+				<div class="case-info">
+					{#if caso.caseNumber}
+						<div class="info-item">
+							<span class="info-label">N° Caso</span>
+							<span class="info-value">{caso.caseNumber}</span>
+						</div>
+					{/if}
+					<div class="info-item">
+						<span class="info-label">Cliente</span>
+						<span class="info-value">{caso.clientName}</span>
 					</div>
-					<div class="mt-3 space-y-2">
-						{#each payments as p}
-							<div
-								class="hover:bg-surface-100-900 grid grid-cols-[1fr_1fr_1.5fr_1fr] items-center gap-4 rounded px-2 py-2 transition-colors"
-							>
-								<div class="text-center text-sm">Nº {p.payment_number}</div>
-								<div class="text-center text-sm">{p.due_date}</div>
-								<div class="text-center text-sm">{p.collector || '-'}</div>
-								{#if p.current}
-									<div class="flex justify-center">
-										<button class="btn preset-filled-success-500 btn-sm" onclick={handleCobrar}
-											>Cobrar
-										</button>
-									</div>
-								{:else if p.payment_date}
-									<div class="text-success-600-400 text-center text-sm font-medium">
-										{formatJUS(p.amount ?? 0)}
-									</div>
-								{:else}
-									<div class="text-surface-400 text-center text-sm">-</div>
-								{/if}
-							</div>
-						{/each}
+					<div class="info-item">
+						<span class="info-label">Teléfono</span>
+						<span class="info-value" style="color: #a8a8a8;">{caso.clientPhone}</span>
+					</div>
+					<div class="info-item">
+						<span class="info-label">Tipo</span>
+						<span class="info-value">{caso.type}</span>
+					</div>
+					<div class="info-item">
+						<span class="info-label">Total JUS</span>
+						<span class="info-value mono">{formatJUS(caso.amount)}</span>
+					</div>
+					<div class="info-item">
+						<span class="info-label">Adeuda JUS</span>
+						<span class="info-value mono" style="color: #ff6b5e;">{formatJUS(caso.restAmount)}</span>
+					</div>
+					<div class="info-item">
+						<span class="info-label">Cuotas pendientes</span>
+						<span class="info-value mono">{pendingCount} / {caso.payments.length}</span>
 					</div>
 				</div>
 
-				<div class="flex flex-row justify-end pt-2">
-					<button class="btn preset-filled-primary-500" onclick={() => dialog?.close()}
-						>Salir</button
-					>
+				<div class="payments-table-wrap">
+					<table class="er-table">
+						<thead>
+							<tr>
+								<th>Cuota</th>
+								<th>Vencimiento</th>
+								<th>Cobrador</th>
+								<th>Estado</th>
+								<th class="col-numeric">Monto / Acción</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each payments as p}
+								<tr>
+									<td>N° {p.payment_number}</td>
+									<td>{p.due_date ?? '—'}</td>
+									<td style="color: #a8a8a8;">{p.collector || '—'}</td>
+									<td>
+										{#if p.payment_date}
+											<span class="badge badge-pagada">Pagada</span>
+										{:else if p.current}
+											<span class="badge badge-proximo">Pendiente</span>
+										{:else}
+											<span style="color: #3e3e3e; font-size: 0.8rem;">—</span>
+										{/if}
+									</td>
+									<td class="col-numeric">
+										{#if p.current}
+											<button class="btn btn-success btn-sm" onclick={handleCobrar}>Cobrar</button>
+										{:else if p.payment_date}
+											<span style="color: #3fb98a;">{formatJUS(p.amount ?? 0)}</span>
+										{:else}
+											<span style="color: #3e3e3e;">—</span>
+										{/if}
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
 				</div>
-			{:else if view === 'confirmSaldar'}
-				<header class={cHeader}>Confirmar acción</header>
-				<p class="text-center">
-					¿Estás seguro de saldar el caso? Esto pondrá el monto restante en 0.
-				</p>
+
+			{:else if view === 'confirmCerrar'}
+				<div class="modal-header">
+					<h2 class="modal-title">Cobrar todo</h2>
+					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"><X size={18} /></button>
+				</div>
 				{#if actionResult}
-					<p
-						class={actionResult.success ? 'text-center text-green-600' : 'text-center text-red-600'}
-					>
-						{actionResult.message}
-					</p>
-					<div class="flex justify-center">
-						<button class="btn preset-filled-primary-500" onclick={() => dialog?.close()}
-							>Salir</button
-						>
+					<p class={actionResult.success ? 'text-success-msg' : 'text-error'} style="margin-bottom: 1rem;">{actionResult.message}</p>
+					<div style="display: flex; justify-content: flex-end;">
+						<button class="btn btn-ghost" onclick={() => dialog?.close()}>Cerrar</button>
 					</div>
 				{:else if actionLoading}
-					<div class="flex justify-center">
-						<div
-							class="border-surface-300-700 border-t-primary-500 size-10 animate-spin rounded-full border-4"
-						></div>
-					</div>
+					<div class="spinner-wrap"><div class="er-spinner"></div></div>
 				{:else}
-					<div class="flex justify-center gap-3">
-						<button class="btn preset-filled-success-500" onclick={handleSaldar}>Saldar</button>
-						<button class="btn preset-outlined-success-500" onclick={() => (view = 'main')}
-							>Cancelar</button
-						>
+					<p style="color: #a8a8a8; margin-bottom: 1.25rem;">
+						Se marcarán las <strong style="color: #f5f5f5;">{pendingCount} cuota{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''}</strong> como cobradas. Ingresá el nombre del cobrador.
+					</p>
+					<div class="label" style="margin-bottom: 1.25rem;">
+						<span>Cobrador</span>
+						<input class="input" type="text" placeholder="Nombre del cobrador" bind:value={collectorInput} />
+					</div>
+					<div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+						<button class="btn btn-ghost" onclick={() => (view = 'main')}>Cancelar</button>
+						<button class="btn btn-success" disabled={!collectorInput.trim()} onclick={handleCerrar}>Confirmar</button>
 					</div>
 				{/if}
-			{:else if view === 'confirmDelete'}
-				<header class={cHeader}>Confirmar acción</header>
-				<p class="text-center">¿Estás seguro de eliminar el caso?</p>
+
+			{:else if view === 'confirmSaldar'}
+				<div class="modal-header">
+					<h2 class="modal-title">Saldar caso</h2>
+					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"><X size={18} /></button>
+				</div>
+				<p style="color: #a8a8a8; margin-bottom: 1.5rem;">¿Estás seguro de saldar el caso? El monto restante pasará a 0 sin registrar pagos.</p>
 				{#if actionResult}
-					<p
-						class={actionResult.success ? 'text-center text-green-600' : 'text-center text-red-600'}
-					>
-						{actionResult.message}
-					</p>
-					<div class="flex justify-center">
-						<button class="btn preset-filled-primary-500" onclick={() => dialog?.close()}
-							>Salir</button
-						>
+					<p class={actionResult.success ? 'text-success-msg' : 'text-error'} style="margin-bottom: 1rem;">{actionResult.message}</p>
+					<div style="display: flex; justify-content: flex-end;">
+						<button class="btn btn-ghost" onclick={() => dialog?.close()}>Cerrar</button>
 					</div>
 				{:else if actionLoading}
-					<div class="flex justify-center">
-						<div
-							class="border-surface-300-700 border-t-primary-500 size-10 animate-spin rounded-full border-4"
-						></div>
-					</div>
+					<div class="spinner-wrap"><div class="er-spinner"></div></div>
 				{:else}
-					<div class="flex justify-center gap-3">
-						<button class="btn preset-filled-error-500" onclick={handleDelete}>Eliminar</button>
-						<button class="btn preset-outlined-success-500" onclick={() => (view = 'main')}
-							>Cancelar</button
-						>
+					<div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+						<button class="btn btn-ghost" onclick={() => (view = 'main')}>Cancelar</button>
+						<button class="btn btn-success" onclick={handleSaldar}>Saldar</button>
+					</div>
+				{/if}
+
+			{:else if view === 'confirmDelete'}
+				<div class="modal-header">
+					<h2 class="modal-title">Eliminar caso</h2>
+					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"><X size={18} /></button>
+				</div>
+				<p style="color: #a8a8a8; margin-bottom: 1.5rem;">¿Estás seguro de eliminar el caso? Esta acción no se puede deshacer.</p>
+				{#if actionResult}
+					<p class={actionResult.success ? 'text-success-msg' : 'text-error'} style="margin-bottom: 1rem;">{actionResult.message}</p>
+					<div style="display: flex; justify-content: flex-end;">
+						<button class="btn btn-ghost" onclick={() => dialog?.close()}>Cerrar</button>
+					</div>
+				{:else if actionLoading}
+					<div class="spinner-wrap"><div class="er-spinner"></div></div>
+				{:else}
+					<div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+						<button class="btn btn-ghost" onclick={() => (view = 'main')}>Cancelar</button>
+						<button class="btn btn-danger" onclick={handleDelete}>Eliminar</button>
 					</div>
 				{/if}
 			{/if}
 		</div>
 	{/if}
 </dialog>
+
+<style>
+	.menu-container { position: relative; }
+	.dropdown-content {
+		position: absolute;
+		right: 0;
+		top: calc(100% + 4px);
+	}
+
+	.case-info {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+		gap: 0.75rem;
+		background: #1a1a1a;
+		border: 1px solid #2e2e2e;
+		border-radius: 6px;
+		padding: 1rem;
+		margin-bottom: 1.25rem;
+	}
+
+	.info-item {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
+	.info-label {
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: #6e6e6e;
+	}
+
+	.info-value {
+		font-size: 0.875rem;
+		color: #f5f5f5;
+	}
+
+	.info-value.mono {
+		font-family: 'IBM Plex Mono', monospace;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.payments-table-wrap { overflow-x: auto; }
+</style>

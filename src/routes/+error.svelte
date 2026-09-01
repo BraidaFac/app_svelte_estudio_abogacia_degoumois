@@ -4,7 +4,7 @@
 
 <div class="flex min-h-[60vh] flex-col items-center justify-center gap-6 p-8">
 	<div class="card p-8 text-center shadow-xl">
-		<h1 class="mb-2 text-6xl font-bold text-error-500">
+		<h1 class="text-error-500 mb-2 text-6xl font-bold">
 			{page.status}
 		</h1>
 		<p class="mb-6 text-2xl">

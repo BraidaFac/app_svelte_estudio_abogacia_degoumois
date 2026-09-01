@@ -42,6 +42,13 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 				...c,
 				amount: c.amount.toNumber(),
 				restAmount: c.restAmount.toNumber(),
+				restAmountPesos: c.restAmount.toNumber() * c.currency.value.toNumber(),
+				currency: {
+					id: c.currency.id,
+					name: c.currency.name,
+					value: c.currency.value.toNumber(),
+					isDefault: c.currency.isDefault
+				},
 				payments,
 				quantityPaymentsToPay: c.payments.filter((p) => !p.payment_date).length,
 				dueDate,

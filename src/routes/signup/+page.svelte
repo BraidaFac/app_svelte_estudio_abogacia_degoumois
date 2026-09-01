@@ -5,9 +5,10 @@
 	import { ZodError } from 'zod';
 	import type { ActionData, PageData } from './$types';
 	import { registerSchema } from './registerSchema';
+	import { Trash2 } from '@lucide/svelte';
 
 	let { form, data }: { form: ActionData; data: PageData } = $props();
-	let users = $derived(data.users ?? []);
+	const users: { id: number; name: string; role: string }[] = [];
 	const currentUser = page.data.user;
 	let loading = $state(false);
 	let fieldErrors = $state<Record<string, string | string[] | undefined>>({});
@@ -31,13 +32,13 @@
 	});
 </script>
 
-<div class="mt-8 flex w-full flex-col gap-8 px-4 md:flex-row md:px-6">
-	<div class="flex w-full justify-center md:w-1/2">
+<div class="signup-layout">
+	<div class="signup-form-col">
+		<h2 class="page-title">Alta de Usuario</h2>
+
 		{#if loading}
-			<div class="mt-20 flex justify-center">
-				<div
-					class="size-14 animate-spin rounded-full border-4 border-surface-300-700 border-t-primary-500"
-				></div>
+			<div style="display: flex; justify-content: center; padding: 3rem 0;">
+				<div class="er-spinner"></div>
 			</div>
 		{:else}
 			<form
@@ -60,42 +61,32 @@
 						manageError(error);
 					}
 				}}
-				class="w-full max-w-md space-y-3"
+				class="signup-form"
 			>
-				<h2 class="text-2xl font-semibold mb-4">Alta de Usuario</h2>
-				<label class="label">
+				<div class="label">
 					<span>Nombre y Apellido</span>
-					<input
-						autocomplete="off"
-						autosave="off"
-						class="input"
-						type="text"
-						placeholder="Nombre"
-						name="name"
-					/>
+					<input autocomplete="off" class="input" type="text" placeholder="Nombre" name="name" />
 					{#if fieldErrors['name']}
-						<span class="text-red-500 text-sm">{fieldErrors['name']}</span>
+						<span class="text-error">{fieldErrors['name']}</span>
 					{/if}
-				</label>
-				<label class="label">
+				</div>
+				<div class="label">
 					<span>Contraseña</span>
 					<input
 						autocomplete="off"
-						autosave="off"
 						class="input"
 						type="password"
 						placeholder="Contraseña"
 						name="password"
 					/>
 					{#if fieldErrors['password']}
-						<span class="text-red-500 text-sm">{fieldErrors['password']}</span>
+						<span class="text-error">{fieldErrors['password']}</span>
 					{/if}
-				</label>
-				<label class="label">
+				</div>
+				<div class="label">
 					<span>Confirmar Contraseña</span>
 					<input
 						autocomplete="off"
-						autosave="off"
 						class="input"
 						type="password"
 						placeholder="Confirmar Contraseña"
@@ -103,40 +94,42 @@
 					/>
 					{#if fieldErrors['confirmPassword']}
 						{#each [fieldErrors['confirmPassword']].flat() as msg}
-							<span class="block text-red-500 text-sm">{msg}</span>
+							<span class="text-error">{msg}</span>
 						{/each}
 					{/if}
-				</label>
+				</div>
 				{#if serverMessage}
-					<p class="text-red-500 text-sm">{serverMessage}</p>
+					<p class="text-error" style="margin-bottom: 0.75rem;">{serverMessage}</p>
 				{/if}
-				<button type="submit" class="btn preset-filled-primary-500 mt-2">Guardar</button>
+				<button type="submit" class="btn btn-primary">Guardar</button>
 			</form>
 		{/if}
 	</div>
 
-	<div class="w-full px-0 md:w-1/2">
-		<h1 class="mb-4 text-2xl font-semibold">Usuarios del sistema</h1>
+	<div class="users-col">
+		<h2 class="page-title">Usuarios del sistema</h2>
 		<div class="overflow-x-auto">
-			<table class="table w-full">
+			<table class="er-table">
 				<thead>
 					<tr>
 						<th>Nombre</th>
 						<th>Rol</th>
-						<th>Acciones</th>
+						<th class="col-actions">Acciones</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#if !users || users.length === 0}
 						<tr>
-							<td colspan="3" class="text-center opacity-60">No hay usuarios</td>
+							<td colspan="3" style="text-align: center; padding: 2rem; color: #6e6e6e;">
+								No hay usuarios
+							</td>
 						</tr>
 					{:else}
 						{#each users as user (user.id)}
 							<tr>
 								<td>{user.name}</td>
-								<td>{user.role}</td>
-								<td>
+								<td style="color: #a8a8a8;">{user.role}</td>
+								<td class="col-actions">
 									{#if user.id !== currentUser.id}
 										<form
 											method="POST"
@@ -148,7 +141,9 @@
 											}}
 										>
 											<input hidden type="text" name="id" value={user.id} />
-											<button class="btn preset-filled-error-500 btn-sm">Eliminar</button>
+											<button class="btn btn-danger btn-sm">
+												<Trash2 size={13} />
+											</button>
 										</form>
 									{/if}
 								</td>
@@ -160,3 +155,42 @@
 		</div>
 	</div>
 </div>
+
+<style>
+	.signup-layout {
+		display: flex;
+		flex-direction: column;
+		gap: 2.5rem;
+		padding: 1.5rem 1rem;
+	}
+
+	@media (min-width: 768px) {
+		.signup-layout {
+			flex-direction: row;
+			padding: 2rem 1.5rem;
+		}
+
+		.signup-form-col {
+			width: 50%;
+		}
+
+		.users-col {
+			width: 50%;
+		}
+	}
+
+	.page-title {
+		font-family: 'Cinzel', Georgia, serif;
+		font-size: 1.25rem;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		color: #f5f5f5;
+		margin: 0 0 1.25rem;
+	}
+
+	.signup-form {
+		display: flex;
+		flex-direction: column;
+		max-width: 28rem;
+	}
+</style>

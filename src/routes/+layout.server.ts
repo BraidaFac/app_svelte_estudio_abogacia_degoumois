@@ -1,18 +1,13 @@
-import { getJusValue } from '$lib/jus.model';
+import { getCurrencies } from '$lib/currency.model';
 import type { LayoutServerLoad } from './$types';
 
 export const load: LayoutServerLoad = async ({ locals }) => {
 	const user = locals.user;
-
 	try {
-		const jus_value = await getJusValue();
-		return { user, jus_value };
+		const currencies = await getCurrencies();
+		return { user, currencies };
 	} catch (error) {
-		console.error('Error fetching JUS value:', error);
-		return {
-			user,
-			jus_value: 0,
-			error: { status: 500, message: 'Could not get JUS value' }
-		};
+		console.error('Error fetching currencies:', error);
+		return { user, currencies: [] };
 	}
 };

@@ -1,9 +1,10 @@
 <script lang="ts">
 	import BackToTop from '$lib/components/BackToTop.svelte';
 	import type { ModalContext } from '$lib/types/modal.types';
-	import { formatJUS } from '$lib/utils/formatters';
+	import { formatAmount } from '$lib/utils/currency';
 	import { getContext } from 'svelte';
 	import type { PageData } from './$types';
+	import { CheckCircle, Trash2 } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
 	let cases = $derived(data.cases);
@@ -40,48 +41,60 @@
 </script>
 
 <BackToTop />
-<section class="p-3">
-	<p class="my-4 rounded-md text-center text-3xl">Historial de cancelación total</p>
+
+<section class="p-4 md:p-6">
+	<div class="section-header">
+		<h2 class="section-title">Historial de casos saldados</h2>
+		<span class="badge badge-pagada">
+			<CheckCircle size={13} />
+			{cases.length} caso{cases.length !== 1 ? 's' : ''}
+		</span>
+	</div>
 
 	{#if cases.length === 0}
-		<div class="text-surface-400 mt-16 flex flex-col items-center gap-4">
-			<p class="text-xl">No hay casos en el historial</p>
+		<div class="empty-state">
+			<p style="color: #6e6e6e;">No hay casos en el historial</p>
 		</div>
 	{:else}
 		<div class="overflow-x-auto">
-			<table class="table min-w-[700px] text-center">
+			<table class="er-table" style="min-width: 760px;">
 				<thead>
 					<tr>
-						<th class="text-center">Descripcion</th>
-						<th class="text-center">Tipo caso</th>
-						<th class="text-center">Nombre cliente</th>
-						<th class="text-center">Telefono cliente</th>
-						<th class="text-center">Monto saldado</th>
-						<th class="text-center">Creado</th>
-						<th class="text-center">Detalles</th>
-						<th class="text-center">Eliminar</th>
+						<th>Estado</th>
+						<th>Descripción</th>
+						<th>Tipo</th>
+						<th>Cliente</th>
+						<th>Teléfono</th>
+						<th class="col-numeric">Monto saldado</th>
+						<th>Creado</th>
+						<th class="col-actions">Detalles</th>
+						<th class="col-actions">Eliminar</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each paginatedCases as caso}
-						<tr>
-							<td>{caso.description}</td>
-							<td>{caso.type}</td>
-							<td>{caso.clientName}</td>
-							<td>{caso.clientPhone}</td>
-							<td>{formatJUS(caso.amount)}</td>
-							<td>{caso.created}</td>
-							<td>
-								<button
-									class="btn preset-filled-warning-500 btn-sm"
-									onclick={() => openDetails(caso)}>Ver</button
-								>
+						<tr class="row-pagada">
+							<td class="status-cell">
+								<div class="status-inner">
+									<CheckCircle size={12} />
+									Saldado
+								</div>
 							</td>
-							<td>
-								<button
-									class="btn preset-filled-primary-500 btn-sm"
-									onclick={() => confirmDelete(caso)}>Eliminar</button
-								>
+							<td>{caso.description}</td>
+							<td style="color: #a8a8a8;">{caso.type}</td>
+							<td>{caso.clientName}</td>
+							<td style="color: #a8a8a8;">{caso.clientPhone}</td>
+							<td class="col-numeric">{formatAmount(caso.amount, caso.currency.name)}</td>
+							<td>{caso.created}</td>
+							<td class="col-actions">
+								<button class="btn btn-ghost btn-sm" onclick={() => openDetails(caso)}>
+									Ver
+								</button>
+							</td>
+							<td class="col-actions">
+								<button class="btn btn-danger btn-sm" onclick={() => confirmDelete(caso)}>
+									<Trash2 size={13} />
+								</button>
 							</td>
 						</tr>
 					{/each}
@@ -90,17 +103,17 @@
 		</div>
 
 		{#if totalPages > 1}
-			<div class="mt-4 flex items-center justify-center gap-2">
+			<div class="pagination">
 				<button
-					class="btn btn-sm variant-soft"
+					class="btn btn-ghost btn-sm"
 					disabled={currentPage === 1}
 					onclick={() => goToPage(currentPage - 1)}
 				>
 					← Anterior
 				</button>
-				<span class="text-sm">Página {currentPage} de {totalPages}</span>
+				<span class="pagination-info">Página {currentPage} de {totalPages}</span>
 				<button
-					class="btn btn-sm variant-soft"
+					class="btn btn-ghost btn-sm"
 					disabled={currentPage === totalPages}
 					onclick={() => goToPage(currentPage + 1)}
 				>
@@ -110,3 +123,39 @@
 		{/if}
 	{/if}
 </section>
+
+<style>
+	.section-header {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-bottom: 1.25rem;
+	}
+
+	.section-title {
+		font-family: 'Cinzel', Georgia, serif;
+		font-size: 1.25rem;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		color: #f5f5f5;
+		margin: 0;
+	}
+
+	.empty-state {
+		margin-top: 4rem;
+		text-align: center;
+	}
+
+	.pagination {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 1rem;
+		margin-top: 1.5rem;
+	}
+
+	.pagination-info {
+		font-size: 0.875rem;
+		color: #a8a8a8;
+	}
+</style>
