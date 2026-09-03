@@ -458,6 +458,46 @@ body {
 }
 
 /* ============================================================
+   Toast
+   ============================================================ */
+
+.er-toast {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 0.875rem 1rem;
+	background: #1e1e1e;
+	border: 1px solid #3a3a3a;
+	border-radius: 8px;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+	color: #f0f0f0;
+	font-family: 'IBM Plex Sans', sans-serif;
+	font-size: 0.875rem;
+	min-width: 260px;
+	max-width: 380px;
+}
+
+.er-toast--success { border-left: 3px solid #3fb98a; }
+.er-toast--error   { border-left: 3px solid #ff6b5e; }
+.er-toast--warning { border-left: 3px solid #e6a93c; }
+.er-toast--info    { border-left: 3px solid #6b9fff; }
+
+.er-toast-close {
+	margin-left: auto;
+	background: transparent;
+	border: none;
+	color: #6e6e6e;
+	cursor: pointer;
+	font-size: 0.75rem;
+	padding: 0.1rem 0.25rem;
+	line-height: 1;
+	flex-shrink: 0;
+	transition: color 120ms ease;
+}
+
+.er-toast-close:hover { color: #f0f0f0; }
+
+/* ============================================================
    Badges
    ============================================================ */
 

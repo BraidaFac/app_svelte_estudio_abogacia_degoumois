@@ -14,5 +14,8 @@ vite.config.ts.timestamp-*
 
 # Claude Code files
 .claude/
-src/CLAUDE.md
-src/**/CLAUDE.md
+**/CLAUDE.md
+
+# Compiled scripts
+prisma/seed.js
+scripts/*.js
