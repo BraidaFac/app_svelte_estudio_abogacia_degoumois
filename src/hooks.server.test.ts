@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 // Mock SvelteKit virtual modules and dependencies before importing hooks
-vi.mock('$env/static/private', () => ({ JWT_ACCESS_SECRET: 'test-secret' }));
+vi.mock('$env/dynamic/private', () => ({ env: { JWT_ACCESS_SECRET: 'test-secret' } }));
 vi.mock('$lib/db', () => ({ db: { user: { findUnique: vi.fn() } } }));
 vi.mock('jsonwebtoken', () => ({ default: { verify: vi.fn() } }));
 

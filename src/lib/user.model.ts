@@ -3,7 +3,7 @@
  * Implementa principios SOLID y tipado estricto
  */
 
-import { JWT_ACCESS_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { db } from '$lib/db';
 import type { Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
@@ -111,7 +111,7 @@ export async function loginUser(name: string, password: string): Promise<LoginRe
 		role: user.role
 	};
 
-	const token = jwt.sign(jwtUser, JWT_ACCESS_SECRET, {
+	const token = jwt.sign(jwtUser, env.JWT_ACCESS_SECRET, {
 		expiresIn: TOKEN_EXPIRY
 	});
 

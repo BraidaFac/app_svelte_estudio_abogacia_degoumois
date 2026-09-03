@@ -2,7 +2,7 @@
  * Server hooks para autenticación y manejo de sesiones
  */
 
-import { JWT_ACCESS_SECRET } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { db } from '$lib/db';
 import type { Role } from '@prisma/client';
 import type { Handle } from '@sveltejs/kit';
@@ -121,7 +121,7 @@ function extractToken(authHeader: string): string {
  * Verifica y decodifica el token JWT
  */
 function verifyToken(token: string): JwtPayload {
-	const decoded = jwt.verify(token, JWT_ACCESS_SECRET);
+	const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET);
 
 	if (typeof decoded === 'string') {
 		throw new Error('Invalid token format');
