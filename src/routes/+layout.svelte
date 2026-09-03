@@ -2,7 +2,7 @@
 	import { setContext } from 'svelte';
 	import { page } from '$app/stores';
 	import type { Snippet } from 'svelte';
-	import { Toast } from '@skeletonlabs/skeleton-svelte';
+	import { Toaster } from '@skeletonlabs/skeleton-svelte';
 	import { toaster } from '$lib/stores/toast';
 	import BurgerBar from '$lib/components/BurgerBar.svelte';
 	import ModalForm from '$lib/components/ModalForm.svelte';
@@ -52,19 +52,7 @@
 	});
 </script>
 
-<Toast.Group {toaster}>
-	{#snippet children(toast)}
-		<Toast {toast} class="er-toast er-toast--{toast.type}">
-			<Toast.Message>
-				<Toast.Title>{toast.title}</Toast.Title>
-				{#if toast.description}
-					<Toast.Description>{toast.description}</Toast.Description>
-				{/if}
-			</Toast.Message>
-			<Toast.CloseTrigger class="er-toast-close">✕</Toast.CloseTrigger>
-		</Toast>
-	{/snippet}
-</Toast.Group>
+<Toaster {toaster} />
 <ModalForm bind:dialog={formDialog} />
 <ModalToPay bind:dialog={toPayDialog} caso={activeCaso} />
 <ModalCurrencies bind:dialog={currenciesDialog} />
