@@ -23,29 +23,30 @@ interface RateLimitEntry {
 	resetAt: number;
 }
 
-const RATE_LIMIT_MAX = 10;
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutos
 const AUTH_ROUTES = ['/login', '/signup'];
 
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-export function checkRateLimit(ip: string): { allowed: boolean; retryAfterSeconds: number } {
-	const now = Date.now();
-	const entry = rateLimitStore.get(ip);
-
-	if (!entry || now > entry.resetAt) {
-		rateLimitStore.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+function makeRateLimiter(max: number, windowMs: number) {
+	const store = new Map<string, RateLimitEntry>();
+	return function check(ip: string): { allowed: boolean; retryAfterSeconds: number } {
+		const now = Date.now();
+		const entry = store.get(ip);
+		if (!entry || now > entry.resetAt) {
+			store.set(ip, { count: 1, resetAt: now + windowMs });
+			return { allowed: true, retryAfterSeconds: 0 };
+		}
+		if (entry.count >= max) {
+			return { allowed: false, retryAfterSeconds: Math.ceil((entry.resetAt - now) / 1000) };
+		}
+		entry.count++;
 		return { allowed: true, retryAfterSeconds: 0 };
-	}
-
-	if (entry.count >= RATE_LIMIT_MAX) {
-		const retryAfterSeconds = Math.ceil((entry.resetAt - now) / 1000);
-		return { allowed: false, retryAfterSeconds };
-	}
-
-	entry.count++;
-	return { allowed: true, retryAfterSeconds: 0 };
+	};
 }
+
+// Auth: 10 intentos / 15 min (fuerza bruta)
+export const checkRateLimit = makeRateLimiter(10, 15 * 60 * 1000);
+
+// Global: 120 req / min por IP (protección VPS)
+const checkGlobalLimit = makeRateLimiter(120, 60 * 1000);
 
 // ============================================
 // HANDLE HOOK
@@ -55,12 +56,24 @@ export function checkRateLimit(ip: string): { allowed: boolean; retryAfterSecond
  * Hook principal que verifica la autenticación del usuario
  */
 export const handle: Handle = async ({ event, resolve }) => {
-	// Rate limiting en rutas de auth (solo en métodos POST)
+	const ip = event.getClientAddress();
+
+	// Límite global: 120 req/min por IP
+	const global = checkGlobalLimit(ip);
+	if (!global.allowed) {
+		return new Response(JSON.stringify({ error: 'Demasiadas solicitudes. Intente más tarde.' }), {
+			status: 429,
+			headers: {
+				'Content-Type': 'application/json',
+				'Retry-After': String(global.retryAfterSeconds)
+			}
+		});
+	}
+
+	// Límite estricto en auth: 10 intentos / 15 min
 	const isAuthRoute = AUTH_ROUTES.some((route) => event.url.pathname.startsWith(route));
 	if (isAuthRoute && event.request.method === 'POST') {
-		const ip = event.getClientAddress();
 		const { allowed, retryAfterSeconds } = checkRateLimit(ip);
-
 		if (!allowed) {
 			return new Response(JSON.stringify({ error: 'Demasiados intentos. Intente más tarde.' }), {
 				status: 429,

@@ -13,7 +13,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	create: async ({ request }) => {
+	create: async ({ request, locals }) => {
+		if (!locals.user || locals.user.role !== 'ADMIN') {
+			return fail(403, { message: 'No autorizado' });
+		}
+
 		const formData = Object.fromEntries(await request.formData()) as Record<string, string>;
 
 		let parsed: { name: string; password: string };
@@ -37,7 +41,11 @@ export const actions: Actions = {
 
 		return { success: true };
 	},
-	delete: async ({ request }) => {
+	delete: async ({ request, locals }) => {
+		if (!locals.user || locals.user.role !== 'ADMIN') {
+			return fail(403, { message: 'No autorizado' });
+		}
+
 		const formData = Object.fromEntries(await request.formData()) as Record<string, string>;
 		try {
 			const { id } = formData;

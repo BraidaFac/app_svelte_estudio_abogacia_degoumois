@@ -5,7 +5,8 @@
 	"scripts": {
 		"postinstall": "prisma generate",
 		"dev": "vite dev",
-		"build": "vite build",
+		"build": "prisma generate && vite build",
+		"start": "prisma migrate deploy && prisma db seed && node build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -44,6 +45,7 @@
 		"svelte-check": "^4.3.4",
 		"tailwindcss": "^4.3.3",
 		"tslib": "^2.8.1",
+		"tsx": "^4.23.13",
 		"typescript": "^5.9.3",
 		"vite": "^6.2.5",
 		"vitest": "^4.1.11"

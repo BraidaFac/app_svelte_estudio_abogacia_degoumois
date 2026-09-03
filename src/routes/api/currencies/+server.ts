@@ -16,6 +16,7 @@ export const GET: RequestHandler = async ({ locals }) => {
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	if (!locals.user) throw redirect(302, '/login');
+	if (locals.user.role !== 'ADMIN') return apiError(ApiErrors.VALIDATION, 'No autorizado', 403);
 
 	const data = (await request.json()) as Record<string, string>;
 	const { name, value } = data;
