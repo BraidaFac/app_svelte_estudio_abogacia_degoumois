@@ -3,7 +3,7 @@
  */
 
 import { createPayment } from '$lib/case.model';
-import { createErrorResponse } from '$lib/utils/api';
+import { apiSuccess, apiError, ApiErrors } from '$lib/utils/api';
 import type { PaymentType } from '@prisma/client';
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -35,25 +35,25 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		data = PaymentSchema.parse(rawData);
 	} catch (error) {
 		if (error instanceof ZodError) {
-			return createErrorResponse(error.errors[0]?.message ?? 'Datos inválidos', 400);
+			return apiError(ApiErrors.VALIDATION, error.errors[0]?.message ?? 'Datos inválidos', 400);
 		}
-		return createErrorResponse('Datos inválidos', 400);
+		return apiError(ApiErrors.VALIDATION, 'Datos inválidos', 400);
 	}
 
 	const { caseId, amount, typepayment, paymentNumber, collector } = data;
 
 	try {
 		// amount arrives in native currency from ModalToPay — parse directly
-		const amountNative = parseFloat(amount.replace(',', '.'));
+		const amountNative = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
 		const response = await createPayment(parseInt(caseId, 10), {
 			amount: parseFloat(amountNative.toFixed(3)),
 			typepayment: typepayment as PaymentType,
 			paymentNumber: parseInt(paymentNumber, 10),
 			collector
 		});
-		return new Response(JSON.stringify({ response }), { status: 200 });
+		return apiSuccess(response, 'Pago registrado correctamente');
 	} catch (error) {
 		console.error('Error creating payment:', error);
-		return createErrorResponse('Error al registrar pago', 500);
+		return apiError(ApiErrors.SERVER_ERROR, 'Error al registrar pago', 500);
 	}
 };

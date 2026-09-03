@@ -73,6 +73,43 @@ export function parseCommaDecimal(value: string): number {
 	return Number(value.replace(',', '.'));
 }
 
+/**
+ * Parsea un string de importe con convención argentina (punto=miles, coma=decimal)
+ * Ejemplos: "1.234,75" → 1234.75 | "1.234" → 1234 | "45,333" → 45.333
+ */
+export function parseAmountInput(value: string): number {
+	return parseFloat(value.replace(/\./g, '').replace(',', '.')) || 0;
+}
+
+// ============================================
+// AMOUNT INPUT HANDLERS (convención: punto=miles, coma=decimal)
+// Uso: onfocus={amountFocus} oninput={amountInput} onblur={(e) => { amountBlur(e); syncState(); }}
+// ============================================
+
+/** onfocus: quita puntos de miles y selecciona todo para que el usuario reemplace el valor */
+export function amountFocus(e: Event) {
+	const input = e.target as HTMLInputElement;
+	input.value = input.value.replace(/\./g, '');
+	input.select();
+}
+
+/** oninput: bloquea todo carácter que no sea dígito o coma (una sola coma permitida) */
+export function amountInput(e: Event) {
+	const input = e.target as HTMLInputElement;
+	const lastChar = input.value.slice(-1);
+	if (lastChar && !/[\d,]/.test(lastChar)) { input.value = input.value.slice(0, -1); return; }
+	if (lastChar === ',' && (input.value.match(/,/g) || []).length > 1) { input.value = input.value.slice(0, -1); }
+}
+
+/** onblur: formatea con punto=miles y coma=decimal. Devuelve el string formateado para sincronizar estado. */
+export function amountBlur(e: Event): string {
+	const input = e.target as HTMLInputElement;
+	const num = parseAmountInput(input.value);
+	const formatted = num > 0 ? formatNumber(num) : '';
+	input.value = formatted;
+	return formatted;
+}
+
 // ============================================
 // JUS / CURRENCY FORMATTERS
 // ============================================

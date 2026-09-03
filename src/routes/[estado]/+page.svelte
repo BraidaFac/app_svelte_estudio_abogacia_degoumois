@@ -105,7 +105,7 @@
 					<th>Tipo</th>
 					<th>Cliente</th>
 					<th>Teléfono</th>
-					<th class="col-numeric">Monto</th>
+					<th class="col-numeric">A saldar</th>
 					<th class="col-numeric">Cuotas</th>
 					<th>Fecha cobro</th>
 					<th class="col-actions">Acciones</th>
@@ -156,7 +156,7 @@
 </section>
 
 <!-- Quick close dialog -->
-<dialog bind:this={quickCloseDialog}>
+<dialog bind:this={quickCloseDialog} onclick={(e) => { if (e.target === e.currentTarget) quickCloseDialog?.close(); }}>
 	<div class="modal-panel modal-panel-sm">
 		<div class="modal-header">
 			<h2 class="modal-title">Cobrar todo</h2>

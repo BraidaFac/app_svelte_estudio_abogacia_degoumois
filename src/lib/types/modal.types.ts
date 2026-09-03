@@ -5,5 +5,7 @@ export interface ModalContext {
 	openToPay: (caso: FormattedCase) => void;
 	openCurrencies: () => void;
 	openDetails: (caso: FormattedCase) => void;
+	openEdit: (caso: FormattedCase) => void;
+	openDelete: (caso: FormattedCase) => void;
 	openConverter: () => void;
 }

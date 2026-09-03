@@ -2,7 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { addThousandSeparator } from '$lib/utils/formatters';
-	import { X } from '@lucide/svelte';
+	import { X, Pencil, Check } from '@lucide/svelte';
 	import type { CurrencyRecord } from '$lib/currency.model';
 
 	let { dialog = $bindable<HTMLDialogElement | undefined>() }: { dialog?: HTMLDialogElement } =
@@ -65,7 +65,7 @@
 	}
 </script>
 
-<dialog bind:this={dialog}>
+<dialog bind:this={dialog} onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}>
 	<div class="modal-panel modal-panel-sm">
 		<div class="modal-header">
 			<h2 class="modal-title">Monedas</h2>
@@ -85,7 +85,7 @@
 							{#if currency.isDefault}<span style="font-size: 0.75rem; opacity: 0.6;">(defecto)</span>{/if}
 						</span>
 						{#if editingName === currency.name}
-							<div style="display: flex; gap: 0.5rem;">
+							<div style="display: flex; gap: 0.5rem; align-items: center;">
 								<input
 									class="input"
 									type="text"
@@ -93,16 +93,20 @@
 									oninput={onValueInput}
 									placeholder="Valor en pesos"
 								/>
-								<button class="btn btn-success btn-sm" onclick={saveValue}>✓</button>
-								<button class="btn btn-ghost btn-sm" onclick={() => (editingName = null)}>✕</button>
+								<button class="modal-icon-btn save-btn" onclick={saveValue} aria-label="Guardar">
+									<Check size={16} />
+								</button>
+								<button class="modal-icon-btn" onclick={() => (editingName = null)} aria-label="Cancelar">
+									<X size={16} />
+								</button>
 							</div>
 						{:else}
 							<div style="display: flex; justify-content: space-between; align-items: center;">
 								<span class="input" style="background: transparent; cursor: default;">
 									$ {addThousandSeparator(currency.value)}
 								</span>
-								<button class="btn btn-ghost btn-sm" onclick={() => startEdit(currency)}>
-									Editar
+								<button class="modal-icon-btn" onclick={() => startEdit(currency)} aria-label="Editar {currency.name}">
+									<Pencil size={15} />
 								</button>
 							</div>
 						{/if}
@@ -120,3 +124,11 @@
 		{/if}
 	</div>
 </dialog>
+
+<style>
+	.save-btn:hover {
+		color: #3fb98a;
+		background: rgba(63, 185, 138, 0.1);
+		border-color: rgba(63, 185, 138, 0.25);
+	}
+</style>

@@ -6,12 +6,16 @@
 	import { PaymentType, Timing } from '$lib/utils/paymentsTypes';
 	import { differenceInHours } from 'date-fns';
 	import { fade } from 'svelte/transition';
-	import { addThousandSeparator } from '$lib/utils/formatters';
+	import { addThousandSeparator, parseAmountInput, formatNumber, amountInput, amountFocus } from '$lib/utils/formatters';
 	import { validateOrThrow, manageFormError } from '$lib/utils/form';
 	import { toARS, toRatesMap, formatAmount } from '$lib/utils/currency';
-	import { X, ArrowLeftRight } from '@lucide/svelte';
+	import { DatePicker } from 'bits-ui';
+	import type { CalendarDate } from '@internationalized/date';
+	import { X, ArrowLeftRight, CalendarDays, ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import type { ModalContext } from '$lib/types/modal.types';
 	import type { CurrencyRecord } from '$lib/currency.model';
+	import { handleApiResponse } from '$lib/utils/response';
+	import { invalidateAll } from '$app/navigation';
 
 	let { dialog = $bindable<HTMLDialogElement | undefined>() }: { dialog?: HTMLDialogElement } =
 		$props();
@@ -25,7 +29,8 @@
 	let amount_payment = $state('');
 	let case_form = $state<HTMLFormElement | undefined>();
 	let response_state = $state<number | undefined>();
-	let due_date = $state<Date | undefined>();
+	let dateValue = $state<CalendarDate | undefined>(undefined);
+	let datePickerKey = $state(0);
 	let isToday = $state(false);
 	let formErrors = $state<{ errors: Record<string, string | undefined | string[]> } | undefined>();
 
@@ -48,17 +53,20 @@
 		differenceInHours(today, date) < 24 && differenceInHours(today, date) > -24;
 
 	$effect(() => {
-		if (due_date) {
+		if (dateValue) {
 			const today = new Date();
 			today.setHours(-3, 0, 0, 0);
-			const dueDate = new Date(due_date);
+			const dueDate = new Date(dateValue.toString());
 			isToday = isTodayFunction(today, dueDate);
+			calculatePayment();
+		} else {
+			isToday = false;
 		}
 	});
 
 	async function onFormSubmit() {
+		loading = true;
 		try {
-			loading = true;
 			const form = new FormData(case_form!);
 			const data = Object.fromEntries(form.entries());
 			validateOrThrow(data, modalSchema);
@@ -67,58 +75,57 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(data)
 			});
-			loading = false;
-			response_state = response.status;
+			const result = await handleApiResponse(response);
+			if (result.success) {
+				response_state = 201;
+			} else {
+				response_state = response.status;
+			}
 		} catch (error) {
-			loading = false;
 			formErrors = { errors: manageFormError(error) };
+		} finally {
+			loading = false;
 		}
 	}
 
 	function verifyDate() {
 		const today = new Date();
 		today.setHours(-3, 0, 0, 0);
-		const dueDate = new Date(due_date!);
+		const dueDate = new Date(dateValue!.toString());
 		return dueDate >= today;
 	}
 
 	function onInputTransform(event: Event) {
 		const input = event.target as HTMLInputElement;
-		const lastChar = input.value.slice(-1);
-		if (lastChar === '.') { input.value = input.value.slice(0, -1); return; }
 		if (input === input_native) {
-			if (lastChar && !/[\d,]/.test(lastChar)) { input.value = input.value.slice(0, -1); return; }
-			if (lastChar === ',' && (input.value.match(/,/g) || []).length > 1) { input.value = input.value.slice(0, -1); return; }
+			amountInput(event); // filtra: solo dígitos y una coma decimal
 		} else if (input === input_pesos) {
+			const lastChar = input.value.slice(-1);
 			if (lastChar && !/\d/.test(lastChar)) { input.value = input.value.slice(0, -1); return; }
+			input.value = addThousandSeparator(+input.value.replace(/\./g, ''));
 		}
-		const cleanValue = input.value.replace(/\./g, '').replace(',', '.');
-		const numericValue = +cleanValue;
-		if (cleanValue && isNaN(numericValue)) { input.value = input.value.slice(0, -1); return; }
-		if (!cleanValue) { input_native!.value = ''; input_pesos!.value = ''; return; }
+		const numericValue = parseAmountInput(input.value);
+		if (!input.value) { input_native!.value = ''; input_pesos!.value = ''; return; }
 		if (!selectedCurrency) return;
 		if (input === input_native) {
-			// native → show ARS equivalent
 			input_pesos!.value = addThousandSeparator(Math.round(toARS(numericValue, selectedCurrency.value)));
 		} else if (input === input_pesos) {
-			input_pesos!.value = addThousandSeparator(numericValue);
-			// pesos → show native equivalent
 			const nativeVal = numericValue / selectedCurrency.value;
-			input_native!.value = selectedCurrency.name === 'JUS'
-				? nativeVal.toFixed(3).replace('.', ',')
-				: nativeVal.toFixed(2).replace('.', ',');
+			input_native!.value = formatNumber(
+				selectedCurrency.name === 'JUS' ? parseFloat(nativeVal.toFixed(3)) : parseFloat(nativeVal.toFixed(2))
+			);
 		}
 	}
 
 	function calculatePayment() {
-		// amount_payment is in native currency
-		const nativeAmount = input_native!.value.replace(',', '.').replace(/\./g, '');
-		const quantity = +input_quantity_payment!.value;
+		if (!input_native || !input_quantity_payment) return;
+		const nativeAmount = parseAmountInput(input_native.value);
+		const quantity = +input_quantity_payment.value;
 		if (!quantity || !nativeAmount) { amount_payment = ''; return; }
-		const perPayment = +nativeAmount / quantity;
+		const perPayment = nativeAmount / quantity;
 		amount_payment = selectedCurrency?.name === 'JUS'
-			? perPayment.toFixed(3).replace('.', ',')
-			: addThousandSeparator(Math.round(perPayment));
+			? formatNumber(parseFloat(perPayment.toFixed(3)))
+			: formatNumber(Math.round(perPayment));
 	}
 
 	function verifyQuantityPayment(e: Event) {
@@ -127,29 +134,32 @@
 	}
 
 	function verifyPayment(e: Event) {
-		const input = e.target as HTMLInputElement;
-		const lastChar = input.value.slice(-1);
-		if (lastChar && !/\d/.test(lastChar)) { input.value = input.value.slice(0, -1); return; }
-		const numericValue = +input.value.replace(/\./g, '');
-		if (input.value && isNaN(numericValue)) { input.value = input.value.slice(0, -1); return; }
-		// Cap against native amount — amount_payment is in native currency, not pesos
-		const nativeTotal = +input_native!.value.replace(',', '.').replace(/\./g, '');
+		amountInput(e);
 		if (input_quantity_payment!.value === '1') {
 			amount_payment = input_native!.value;
 			return;
 		}
-		amount_payment = addThousandSeparator(numericValue > nativeTotal ? nativeTotal : numericValue);
+		const numericValue = parseAmountInput((e.target as HTMLInputElement).value);
+		const nativeTotal = parseAmountInput(input_native!.value);
+		if (numericValue > nativeTotal) {
+			amount_payment = formatNumber(nativeTotal);
+		}
 	}
 
 	function handleClose() {
+		if (response_state === 201) invalidateAll();
 		dialog?.close();
 		response_state = undefined;
 		formErrors = undefined;
 		loading = false;
+		dateValue = undefined;
+		datePickerKey++;
+		amount_payment = '';
+		case_form?.reset();
 	}
 </script>
 
-<dialog bind:this={dialog}>
+<dialog bind:this={dialog} onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}>
 	<div class="modal-panel" style="width: min(90vw, 56rem);">
 		<div class="modal-header">
 			<h2 class="modal-title">Nuevo caso</h2>
@@ -161,11 +171,21 @@
 			</div>
 		</div>
 
-		{#if !response_state}
-			{#if loading}
-				<div class="spinner-wrap"><div class="er-spinner"></div></div>
-			{:else}
-				<form class="form-section" bind:this={case_form} method="POST">
+		{#if loading}
+			<div class="spinner-wrap"><div class="er-spinner"></div></div>
+		{:else if response_state === 201}
+			<p class="text-success-msg" style="text-align: center; padding: 1.5rem 0;">Caso creado correctamente</p>
+			<div style="display: flex; justify-content: flex-end;">
+				<button class="btn btn-success" onclick={handleClose}>Cerrar</button>
+			</div>
+		{:else if response_state}
+			<p class="text-error" style="text-align: center; padding: 1.5rem 0;">Hubo un error al guardar. Intente nuevamente</p>
+			<div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+				<button class="btn btn-danger" onclick={() => (response_state = undefined)}>Reintentar</button>
+				<button class="btn btn-ghost" onclick={handleClose}>Salir</button>
+			</div>
+		{:else}
+			<form class="form-section" bind:this={case_form} method="POST" onsubmit={(e) => e.preventDefault()}>
 					<div class="form-grid">
 						<div class="label" style="grid-column: 1 / -1;">
 							<span>Moneda del caso</span>
@@ -193,24 +213,33 @@
 							{#if formErrors?.errors?.['clientPhone']}<span class="text-error">{formErrors.errors['clientPhone']}</span>{/if}
 						</div>
 						<div class="label">
+							<span>Email</span>
+							<input autocomplete="off" class="input" type="email" placeholder="email@ejemplo.com" name="clientEmail" />
+							{#if formErrors?.errors?.['clientEmail']}<span class="text-error">{formErrors.errors['clientEmail']}</span>{/if}
+						</div>
+						<div class="label">
 							<span>Observación</span>
 							<input autocomplete="off" class="input" type="text" placeholder="Observaciones" name="description" />
 							{#if formErrors?.errors?.['description']}<span class="text-error">{formErrors.errors['description']}</span>{/if}
 						</div>
 						<div class="label">
+							<span>N° de caso <span style="opacity:0.45; font-size:0.75rem;">(opcional)</span></span>
+							<input autocomplete="off" class="input" type="text" placeholder="Ej: 2024/001" name="caseNumber" />
+						</div>
+						<div class="label">
 							<span>Tipo de caso</span>
 							<select name="type" class="select">
-								{#each Object.keys(typeCases) as type}<option value={type}>{type}</option>{/each}
+								{#each Object.keys(typeCases) as type}<option value={type}>{type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}</option>{/each}
 							</select>
 						</div>
 						<div class="label">
 							<span>{selectedCurrency?.name ?? 'Monto'}</span>
-							<input autocomplete="off" class="input" bind:this={input_native} oninput={onInputTransform} type="text" placeholder={selectedCurrency?.name ?? 'Monto'} name="amount" />
+							<input autocomplete="off" class="input" bind:this={input_native} onfocus={amountFocus} oninput={onInputTransform} onblur={(e) => { const n = parseAmountInput((e.target as HTMLInputElement).value); if (n > 0) (e.target as HTMLInputElement).value = formatNumber(n); }} type="text" placeholder={selectedCurrency?.name ?? 'Monto'} name="amount" />
 							{#if formErrors?.errors?.['amount']}<span class="text-error">{formErrors.errors['amount']}</span>{/if}
 						</div>
 						<div class="label">
 							<span>Equivalente en pesos</span>
-							<input autocomplete="off" class="input" type="text" bind:this={input_pesos} oninput={(e) => { onInputTransform(e); calculatePayment(); }} placeholder="$ PESOS" />
+							<input autocomplete="off" class="input" type="text" bind:this={input_pesos} onfocus={amountFocus} oninput={(e) => { onInputTransform(e); calculatePayment(); }} onblur={(e) => { const n = parseAmountInput((e.target as HTMLInputElement).value); if (n > 0) (e.target as HTMLInputElement).value = addThousandSeparator(Math.round(n)); }} placeholder="$ PESOS" />
 						</div>
 						<div class="label">
 							<span>Cantidad de cuotas</span>
@@ -220,18 +249,64 @@
 						<div class="label">
 							<span>Periodicidad</span>
 							<select class="select" name="period">
-								<option value={Timing.SEMANAL}>{Timing.SEMANAL}</option>
-								<option value={Timing.QUINCENAL}>{Timing.QUINCENAL}</option>
-								<option value={Timing.MENSUAL}>{Timing.MENSUAL}</option>
+								<option value={Timing.SEMANAL}>Semanal</option>
+								<option value={Timing.QUINCENAL}>Quincenal</option>
+								<option value={Timing.MENSUAL}>Mensual</option>
 							</select>
 						</div>
 						<div class="label">
 							<span>Fecha primer cuota</span>
-							<input autocomplete="off" class="input" type="date" bind:value={due_date} oninput={calculatePayment} name="due_date" />
+							{#key datePickerKey}
+							<DatePicker.Root locale="es" bind:value={dateValue} weekStartsOn={1}>
+								<DatePicker.Input name="due_date" class="date-field-input">
+									{#snippet children({ segments })}
+										{#each segments as { part, value }}
+											<DatePicker.Segment {part} class="date-segment">{value}</DatePicker.Segment>
+										{/each}
+										<DatePicker.Trigger class="date-picker-trigger">
+											<CalendarDays size={15} />
+										</DatePicker.Trigger>
+									{/snippet}
+								</DatePicker.Input>
+								<DatePicker.Content class="date-picker-content">
+									<DatePicker.Calendar>
+										{#snippet children({ months, weekdays })}
+											<DatePicker.Header class="date-picker-header">
+												<DatePicker.PrevButton class="date-picker-nav-btn"><ChevronLeft size={16} /></DatePicker.PrevButton>
+												<DatePicker.Heading class="date-picker-heading" />
+												<DatePicker.NextButton class="date-picker-nav-btn"><ChevronRight size={16} /></DatePicker.NextButton>
+											</DatePicker.Header>
+											{#each months as month}
+												<DatePicker.Grid class="date-picker-grid">
+													<DatePicker.GridHead>
+														<DatePicker.GridRow>
+															{#each weekdays as day}
+																<DatePicker.HeadCell class="date-picker-head-cell">{day.slice(0,2)}</DatePicker.HeadCell>
+															{/each}
+														</DatePicker.GridRow>
+													</DatePicker.GridHead>
+													<DatePicker.GridBody>
+														{#each month.weeks as weekDates}
+															<DatePicker.GridRow>
+																{#each weekDates as date}
+																	<DatePicker.Cell {date} month={month.value} class="date-picker-cell">
+																		<DatePicker.Day class="date-picker-day" />
+																	</DatePicker.Cell>
+																{/each}
+															</DatePicker.GridRow>
+														{/each}
+													</DatePicker.GridBody>
+												</DatePicker.Grid>
+											{/each}
+										{/snippet}
+									</DatePicker.Calendar>
+								</DatePicker.Content>
+							</DatePicker.Root>
+							{/key}
 							{#if formErrors?.errors?.['due_date']}<span class="text-error">{formErrors.errors['due_date']}</span>{/if}
-							{#if due_date && !verifyDate()}<span class="text-error">Fecha pasada</span>{/if}
+							{#if dateValue && !verifyDate()}<span class="text-error">Fecha pasada</span>{/if}
 						</div>
-						{#if due_date && isToday}
+						{#if dateValue && isToday}
 							<div class="label" transition:fade>
 								<span>Monto a entregar</span>
 								<input autocomplete="off" class="input" type="text" bind:value={amount_payment} oninput={verifyPayment} placeholder="Monto ({selectedCurrency?.name})" name="amount_payment" />
@@ -240,7 +315,7 @@
 							<div class="label" transition:fade>
 								<span>Método de pago</span>
 								<select class="select" name="typepayment">
-									{#each Object.keys(PaymentType) as type}<option value={type}>{type}</option>{/each}
+									{#each Object.keys(PaymentType) as type}<option value={type}>{PaymentType[type as keyof typeof PaymentType]}</option>{/each}
 								</select>
 								{#if formErrors?.errors?.['typepayment']}<span class="text-error">{formErrors.errors['typepayment']}</span>{/if}
 							</div>
@@ -251,23 +326,11 @@
 						{/if}
 					</div>
 					<div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
-						<button class="btn btn-success" disabled={!!(due_date && !verifyDate())} onclick={(e) => { e.preventDefault(); onFormSubmit(); }}>
+						<button class="btn btn-success" disabled={!!(dateValue && !verifyDate())} onclick={(e) => { e.preventDefault(); onFormSubmit(); }}>
 							Guardar caso
 						</button>
 					</div>
 				</form>
-			{/if}
-		{:else if response_state === 201}
-			<p class="text-success-msg" style="text-align: center; padding: 1.5rem 0;">Caso creado correctamente</p>
-			<div style="display: flex; justify-content: flex-end;">
-				<button class="btn btn-success" onclick={handleClose}>Cerrar</button>
-			</div>
-		{:else}
-			<p class="text-error" style="text-align: center; padding: 1.5rem 0;">Hubo un error al guardar. Intente nuevamente</p>
-			<div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-				<button class="btn btn-danger" onclick={() => (response_state = undefined)}>Reintentar</button>
-				<button class="btn btn-ghost" onclick={handleClose}>Salir</button>
-			</div>
 		{/if}
 	</div>
 </dialog>

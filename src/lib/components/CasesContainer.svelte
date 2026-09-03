@@ -1,56 +1,19 @@
 <script lang="ts">
-	import { filterStore } from '$lib/stores/filter';
+	import Pagination from '$lib/components/Pagination.svelte';
+	import TableFilters from '$lib/components/TableFilters.svelte';
+	import { createTableStore } from '$lib/stores/table.svelte';
 	import type { FormattedCase } from '$lib/types/case.types';
 	import type { ModalContext } from '$lib/types/modal.types';
 	import { formatAmount } from '$lib/utils/currency';
 	import { differenceInHours } from 'date-fns';
 	import { getContext } from 'svelte';
-	import { AlertCircle, Clock, CheckCircle, FileX, X, CreditCard, PackageCheck, Info } from '@lucide/svelte';
-	import { invalidateAll } from '$app/navigation';
+	import { AlertCircle, Clock, CheckCircle, FileX, CreditCard, Pencil, Info, ArrowUp, ArrowDown } from '@lucide/svelte';
 
 	let { cases }: { cases: FormattedCase[] } = $props();
 
-	const { openToPay, openDetails } = getContext<ModalContext>('modals');
+	const { openToPay, openDetails, openEdit } = getContext<ModalContext>('modals');
 
-	let filteredCases = $derived.by(() => {
-		const term = $filterStore.toLowerCase().trim();
-		if (!term) return cases;
-		const words = term.split(/\s+/);
-		return cases.filter((caso) => {
-			const terms = ((caso as any).searchTerms ?? '').toLowerCase();
-			return words.every((w) => terms.includes(w));
-		});
-	});
-
-	let quickCloseDialog = $state<HTMLDialogElement | undefined>();
-	let quickCloseCaso = $state<FormattedCase | null>(null);
-	let quickCollector = $state('');
-	let quickLoading = $state(false);
-	let quickResult = $state<{ success: boolean; message: string } | null>(null);
-
-	function quickClose(caso: FormattedCase) {
-		quickCloseCaso = caso;
-		quickCollector = '';
-		quickResult = null;
-		quickCloseDialog?.showModal();
-	}
-
-	async function submitQuickClose() {
-		if (!quickCloseCaso || !quickCollector.trim()) return;
-		quickLoading = true;
-		const data = new FormData();
-		data.append('caseId', quickCloseCaso.id.toString());
-		data.append('action', 'cerrar');
-		data.append('collector', quickCollector.trim());
-		const response = await fetch('/api/updateCase', { method: 'POST', body: data });
-		quickLoading = false;
-		if (response.status !== 200) {
-			quickResult = { success: false, message: (await response.json()).error?.message || 'Error al cerrar caso' };
-		} else {
-			quickResult = { success: true, message: 'Caso cerrado correctamente' };
-			invalidateAll();
-		}
-	}
+	const table = createTableStore(() => cases, 25, 'dueDate', 'asc');
 
 	type RowStatus = 'row-vencida' | 'row-proximo' | 'row-atiempo';
 	type BadgeStatus = 'badge-vencida' | 'badge-proximo' | 'badge-atiempo';
@@ -76,147 +39,147 @@
 	}
 </script>
 
-<div class="search-bar">
-	<div class="search-wrap">
-		<input
-			type="search"
-			class="input"
-			placeholder="Buscar caso, cliente…"
-			bind:value={$filterStore}
-		/>
-		{#if $filterStore}
-			<button class="clear-btn" onclick={() => ($filterStore = '')} aria-label="Limpiar búsqueda">
-				<X size={15} />
-			</button>
-		{/if}
-	</div>
-</div>
-
-{#if filteredCases.length === 0}
+{#if cases.length === 0 && !table.search}
 	<div class="empty-state">
 		<FileX size={48} strokeWidth={1} style="color: #3e3e3e;" />
-		{#if $filterStore}
-			<p>Sin resultados para <strong>"{$filterStore}"</strong></p>
-		{:else}
-			<p>No hay casos activos</p>
-		{/if}
+		<p>No hay casos activos</p>
 	</div>
 {:else}
 	<div class="overflow-x-auto" style="padding: 0 1rem 2rem;">
-		<table class="er-table" style="min-width: 760px;">
-			<thead>
-				<tr>
-					<th>Estado</th>
-					<th>Descripción</th>
-					<th>Tipo</th>
-					<th>Cliente</th>
-					<th>Teléfono</th>
-					<th class="col-numeric">Monto</th>
-					<th class="col-numeric">Cuotas</th>
-					<th>Fecha cobro</th>
-					<th class="col-actions">Acciones</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each filteredCases as caso (caso.id)}
-					{@const status = getStatus(caso.dueDate)}
-					<tr class={status.rowClass}>
-						<td class="status-cell">
-							<div class="status-inner">
-								<status.icon size={12} />
-								{status.label}
-							</div>
-						</td>
-						<td>{caso.description}</td>
-						<td style="color: #a8a8a8;">{caso.type}</td>
-						<td>{caso.clientName}</td>
-						<td style="color: #a8a8a8;">{caso.clientPhone}</td>
-						<td class="col-numeric">{formatAmount(caso.restAmount, caso.currency.name)}</td>
-						<td class="col-numeric">{caso.quantityPaymentsToPay}</td>
-						<td>{caso.dueDate ?? '—'}</td>
-						<td class="col-actions">
-							<div class="action-icons">
-								<button class="action-btn success" onclick={() => openToPay(caso)} title="Cobrar cuota">
-									<CreditCard size={15} />
-								</button>
-								<button class="action-btn warning" onclick={() => quickClose(caso)} title="Cobrar todo">
-									<PackageCheck size={15} />
-								</button>
-								<button class="action-btn ghost" onclick={() => openDetails(caso)} title="Ver detalles">
-									<Info size={15} />
-								</button>
-							</div>
-						</td>
+		<TableFilters store={table} />
+
+		{#if table.paginatedItems.length === 0}
+			<div class="empty-state" style="margin-top: 2rem;">
+				<FileX size={36} strokeWidth={1} style="color: #3e3e3e;" />
+				<p>Sin resultados para <strong>"{table.search}"</strong></p>
+			</div>
+		{:else}
+			<table class="er-table" style="min-width: 760px;">
+				<thead>
+					<tr>
+						<th>Estado</th>
+						<th class="th-sort" onclick={() => table.toggleSort('caseNumber')}>
+							N° Caso
+							<span class="sort-icon" class:active={table.sortKey === 'caseNumber'}>
+								{#if table.sortKey === 'caseNumber' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="th-sort" onclick={() => table.toggleSort('description')}>
+							Descripción
+							<span class="sort-icon" class:active={table.sortKey === 'description'}>
+								{#if table.sortKey === 'description' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="th-sort" onclick={() => table.toggleSort('type')}>
+							Tipo
+							<span class="sort-icon" class:active={table.sortKey === 'type'}>
+								{#if table.sortKey === 'type' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="th-sort" onclick={() => table.toggleSort('clientName')}>
+							Cliente
+							<span class="sort-icon" class:active={table.sortKey === 'clientName'}>
+								{#if table.sortKey === 'clientName' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="th-sort" onclick={() => table.toggleSort('clientPhone')}>
+							Teléfono
+							<span class="sort-icon" class:active={table.sortKey === 'clientPhone'}>
+								{#if table.sortKey === 'clientPhone' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="col-numeric th-sort" onclick={() => table.toggleSort('restAmount')}>
+							A saldar
+							<span class="sort-icon" class:active={table.sortKey === 'restAmount'}>
+								{#if table.sortKey === 'restAmount' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="col-numeric th-sort" onclick={() => table.toggleSort('quantityPaymentsToPay')}>
+							Cuotas
+							<span class="sort-icon" class:active={table.sortKey === 'quantityPaymentsToPay'}>
+								{#if table.sortKey === 'quantityPaymentsToPay' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="th-sort" onclick={() => table.toggleSort('dueDate')}>
+							Fecha cobro
+							<span class="sort-icon" class:active={table.sortKey === 'dueDate'}>
+								{#if table.sortKey === 'dueDate' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="col-actions">Acciones</th>
 					</tr>
-				{/each}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					{#each table.paginatedItems as caso (caso.id)}
+						{@const status = getStatus(caso.dueDate)}
+						<tr class={status.rowClass}>
+							<td class="status-cell">
+								<div class="status-inner">
+									<status.icon size={12} />
+									{status.label}
+								</div>
+							</td>
+							<td style="color: #a8a8a8;">{caso.caseNumber ?? '—'}</td>
+							<td>{caso.description}</td>
+							<td style="color: #a8a8a8;">{caso.type}</td>
+							<td>{caso.clientName}</td>
+							<td style="color: #a8a8a8;">{caso.clientPhone}</td>
+							<td class="col-numeric">{formatAmount(caso.restAmount, caso.currency.name)}</td>
+							<td class="col-numeric">{caso.quantityPaymentsToPay}/{caso.payments.length}</td>
+							<td>{caso.dueDate ?? '—'}</td>
+							<td class="col-actions">
+								<div class="action-icons">
+									<button class="action-btn success" onclick={() => openToPay(caso)} title="Cobrar cuota">
+										<CreditCard size={15} />
+									</button>
+									<button class="action-btn warning" onclick={() => openEdit(caso)} title="Editar caso">
+										<Pencil size={15} />
+									</button>
+									<button class="action-btn ghost" onclick={() => openDetails(caso)} title="Ver detalles">
+										<Info size={15} />
+									</button>
+								</div>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+
+			<Pagination
+				currentPage={table.page}
+				totalPages={table.totalPages}
+				goToPage={table.goToPage}
+				pageSize={table.pageSize}
+				onPageSizeChange={(v) => (table.pageSize = v)}
+			/>
+		{/if}
 	</div>
 {/if}
 
-<!-- Quick close dialog -->
-<dialog bind:this={quickCloseDialog}>
-	<div class="modal-panel modal-panel-sm">
-		<div class="modal-header">
-			<h2 class="modal-title">Cobrar todo</h2>
-			<button class="modal-icon-btn" onclick={() => quickCloseDialog?.close()} aria-label="Cerrar"><X size={18} /></button>
-		</div>
-		{#if quickResult}
-			<p class={quickResult.success ? 'text-success-msg' : 'text-error'} style="margin-bottom: 1rem;">{quickResult.message}</p>
-			<div style="display: flex; justify-content: flex-end;">
-				<button class="btn btn-ghost" onclick={() => quickCloseDialog?.close()}>Cerrar</button>
-			</div>
-		{:else if quickLoading}
-			<div class="spinner-wrap"><div class="er-spinner"></div></div>
-		{:else}
-			<p style="color: #a8a8a8; margin-bottom: 1.25rem;">
-				Se marcarán todas las cuotas pendientes de <strong style="color: #f5f5f5;">{quickCloseCaso?.description}</strong> como cobradas.
-			</p>
-			<div class="label" style="margin-bottom: 1.25rem;">
-				<span>Cobrador</span>
-				<input class="input" type="text" placeholder="Nombre del cobrador" bind:value={quickCollector} />
-			</div>
-			<div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-				<button class="btn btn-ghost" onclick={() => quickCloseDialog?.close()}>Cancelar</button>
-				<button class="btn btn-success" disabled={!quickCollector.trim()} onclick={submitQuickClose}>Confirmar</button>
-			</div>
-		{/if}
-	</div>
-</dialog>
-
 <style>
-	.search-bar {
-		padding: 0.75rem 1rem 1rem;
-	}
-
-	.search-wrap {
-		position: relative;
-		max-width: 28rem;
-	}
-
-	.search-wrap .input {
-		padding-right: 2.25rem;
-	}
-
-	.clear-btn {
-		position: absolute;
-		right: 0.5rem;
-		top: 50%;
-		transform: translateY(-50%);
-		background: transparent;
-		border: none;
-		color: #6e6e6e;
+	.th-sort {
 		cursor: pointer;
-		display: flex;
-		padding: 0.2rem;
-		border-radius: 3px;
-		line-height: 0;
-		transition: color 150ms ease;
+		user-select: none;
+		white-space: nowrap;
 	}
 
-	.clear-btn:hover {
-		color: #f5f5f5;
+	.th-sort:hover { color: #d0d0d0; }
+
+	.sort-icon {
+		display: inline-flex;
+		align-items: center;
+		margin-left: 0.25rem;
+		vertical-align: middle;
+		opacity: 0.2;
+		transition: opacity 150ms ease;
 	}
+
+	.sort-icon.active {
+		opacity: 1;
+		color: rgba(212, 49, 36, 0.85);
+	}
+
+	.th-sort:hover .sort-icon:not(.active) { opacity: 0.5; }
 
 	.empty-state {
 		display: flex;

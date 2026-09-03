@@ -6,7 +6,7 @@
 import type { PaymentType } from '@prisma/client';
 import { differenceInDays } from 'date-fns';
 import { db } from './db';
-import type { CaseWithPayments, CreateCaseData, RegisterPaymentData } from './types/case.types';
+import type { CaseWithPayments, CreateCaseData, EditCaseData, RegisterPaymentData } from './types/case.types';
 
 // ============================================
 // CREATE OPERATIONS
@@ -42,7 +42,13 @@ export async function createPayment(caseId: number, paymentData: RegisterPayment
 
 	const restAmount = parseFloat((caso.restAmount.toNumber() - amount).toFixed(4));
 	const totalPayments = caso.payments.length;
-	const hasNextPayment = paymentNumber < totalPayments;
+	// If restAmount reaches 0, treat as final regardless of remaining payment slots
+	const hasNextPayment = paymentNumber < totalPayments && restAmount > 0;
+
+	// Pending payments after the one being paid (for redistribution)
+	const pendingAfterCurrent = caso.payments
+		.filter((p) => p.payment_number > paymentNumber && !p.payment_date)
+		.sort((a, b) => a.payment_number - b.payment_number);
 
 	if (hasNextPayment) {
 		return updatePaymentWithNext(
@@ -52,7 +58,8 @@ export async function createPayment(caseId: number, paymentData: RegisterPayment
 			typepayment,
 			collector,
 			restAmount,
-			today
+			today,
+			pendingAfterCurrent
 		);
 	}
 
@@ -77,8 +84,8 @@ export async function createPayment(caseId: number, paymentData: RegisterPayment
  */
 export async function getCasesWithDebt(): Promise<CaseWithPayments[]> {
 	try {
-		return db.cases.findMany({
-			where: { closed: false },
+		return await db.cases.findMany({
+			where: { closed: false, restAmount: { gt: 0 } },
 			include: { payments: true, currency: true }
 		});
 	} catch (error) {
@@ -93,7 +100,7 @@ export async function getCasesWithDebt(): Promise<CaseWithPayments[]> {
  */
 export async function getCases(): Promise<CaseWithPayments[]> {
 	try {
-		return db.cases.findMany({
+		return await db.cases.findMany({
 			where: { closed: true },
 			include: { payments: true, currency: true }
 		});
@@ -250,6 +257,89 @@ export async function closeCase(caseId: number, collector: string) {
 	]);
 }
 
+/**
+ * Edita los datos de un caso activo, redistribuyendo pagos pendientes
+ */
+export async function editCase(caseId: number, data: EditCaseData) {
+	const caso = await db.cases.findUnique({
+		where: { id: caseId },
+		include: { payments: true }
+	});
+
+	if (!caso) throw new Error('Caso no encontrado');
+	if (caso.closed) throw new Error('No se puede editar un caso cerrado');
+
+	const paidAmount = parseFloat((caso.amount.toNumber() - caso.restAmount.toNumber()).toFixed(4));
+
+	if (data.amount < paidAmount) {
+		throw new Error(`El monto no puede ser menor al total ya cobrado (${paidAmount})`);
+	}
+
+	const newRestAmount = parseFloat((data.amount - paidAmount).toFixed(4));
+
+	// Validate pending payments sum
+	const pendingSum = parseFloat(
+		data.pendingPayments.reduce((acc, p) => acc + p.amount, 0).toFixed(4)
+	);
+	if (Math.abs(pendingSum - newRestAmount) > 0.01) {
+		throw new Error(
+			`La suma de cuotas (${pendingSum}) no coincide con el monto restante (${newRestAmount})`
+		);
+	}
+
+	const existingPending = caso.payments.filter((p) => !p.payment_date);
+	const existingPendingNumbers = new Set(existingPending.map((p) => p.payment_number));
+	const newPendingNumbers = new Set(data.pendingPayments.map((p) => p.payment_number));
+
+	// Payments to delete: exist in DB but not in new list
+	const toDelete = existingPending.filter((p) => !newPendingNumbers.has(p.payment_number));
+	// Payments to create: in new list but not in DB
+	const toCreate = data.pendingPayments.filter((p) => !existingPendingNumbers.has(p.payment_number));
+	// Payments to update: in both
+	const toUpdate = data.pendingPayments.filter((p) => existingPendingNumbers.has(p.payment_number));
+
+	await db.$transaction([
+		...toDelete.map((p) =>
+			db.payment.delete({
+				where: { payment_number_caseId: { payment_number: p.payment_number, caseId } }
+			})
+		),
+		...toCreate.map((p) =>
+			db.payment.create({
+				data: {
+					payment_number: p.payment_number,
+					caseId,
+					due_date: p.due_date,
+					amount: p.amount,
+					current: false,
+					status: 'PENDIENTE'
+				}
+			})
+		),
+		...toUpdate.map((p) =>
+			db.payment.update({
+				where: { payment_number_caseId: { payment_number: p.payment_number, caseId } },
+				data: { due_date: p.due_date, amount: p.amount }
+			})
+		),
+		db.cases.update({
+			where: { id: caseId },
+			data: {
+				description: data.description,
+				clientName: data.clientName,
+				clientPhone: data.clientPhone,
+				clientEmail: data.clientEmail,
+				caseNumber: data.caseNumber,
+				type: data.type,
+				period: data.period,
+				amount: data.amount,
+				restAmount: newRestAmount,
+				updatedAt: new Date()
+			}
+		})
+	]);
+}
+
 // ============================================
 // PRIVATE HELPER FUNCTIONS
 // ============================================
@@ -262,9 +352,50 @@ function findCurrentPayment(caso: CaseWithPayments) {
 }
 
 /**
- * Actualiza un pago cuando hay pagos siguientes
+ * Actualiza un pago cuando hay pagos siguientes, redistribuyendo el restAmount
+ * equitativamente entre las cuotas pendientes restantes.
  */
 async function updatePaymentWithNext(
+	caseId: number,
+	paymentNumber: number,
+	amount: number,
+	typepayment: PaymentType,
+	collector: string,
+	restAmount: number,
+	paymentDate: Date,
+	pendingAfterCurrent: { payment_number: number }[]
+) {
+	const pendingCount = pendingAfterCurrent.length;
+	// ponytail: even split — per-payment rounding handled by toFixed(4)
+	const amountPerPending =
+		pendingCount > 0 ? parseFloat((restAmount / pendingCount).toFixed(4)) : 0;
+
+	return db.$transaction(async (tx) => {
+		await tx.payment.update({
+			where: { payment_number_caseId: { payment_number: paymentNumber, caseId } },
+			data: { amount, typepayment, payment_date: paymentDate, current: false, collector, status: 'PAGADA' }
+		});
+		await tx.payment.update({
+			where: { payment_number_caseId: { payment_number: paymentNumber + 1, caseId } },
+			data: { current: true }
+		});
+		for (const p of pendingAfterCurrent) {
+			await tx.payment.update({
+				where: { payment_number_caseId: { payment_number: p.payment_number, caseId } },
+				data: { amount: amountPerPending }
+			});
+		}
+		return tx.cases.update({
+			where: { id: caseId },
+			data: { restAmount, updatedAt: paymentDate }
+		});
+	});
+}
+
+/**
+ * Actualiza el pago final de un caso
+ */
+async function updateFinalPayment(
 	caseId: number,
 	paymentNumber: number,
 	amount: number,
@@ -285,46 +416,12 @@ async function updatePaymentWithNext(
 				status: 'PAGADA'
 			}
 		}),
-		db.payment.update({
-			where: { payment_number_caseId: { payment_number: paymentNumber + 1, caseId } },
-			data: { current: true }
+		db.payment.deleteMany({
+			where: { caseId, payment_number: { gt: paymentNumber }, payment_date: null }
 		}),
 		db.cases.update({
 			where: { id: caseId },
-			data: { restAmount, updatedAt: paymentDate }
-		})
-	]);
-
-	return casoUpdated;
-}
-
-/**
- * Actualiza el pago final de un caso
- */
-async function updateFinalPayment(
-	caseId: number,
-	paymentNumber: number,
-	amount: number,
-	typepayment: PaymentType,
-	collector: string,
-	restAmount: number,
-	paymentDate: Date
-) {
-	const [, casoUpdated] = await db.$transaction([
-		db.payment.update({
-			where: { payment_number_caseId: { payment_number: paymentNumber, caseId } },
-			data: {
-				amount,
-				typepayment,
-				payment_date: paymentDate,
-				current: false,
-				collector,
-				status: 'PAGADA'
-			}
-		}),
-		db.cases.update({
-			where: { id: caseId },
-			data: { restAmount, updatedAt: paymentDate }
+			data: { restAmount: Math.max(0, restAmount), closed: true, updatedAt: paymentDate }
 		})
 	]);
 

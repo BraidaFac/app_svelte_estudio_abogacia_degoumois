@@ -1,4 +1,4 @@
-import type { Cases, Payment, PaymentType, PaymentStatus, typeCase, Currency } from '@prisma/client';
+import type { Cases, Payment, PaymentType, PaymentStatus, typeCase, Currency, PaymentPeriod } from '@prisma/client';
 
 /**
  * Raw Prisma result — includes payments and currency relation.
@@ -52,13 +52,34 @@ export interface CreateCaseData {
 	type: typeCase;
 	clientName: string;
 	clientPhone: string;
+	clientEmail?: string;
+	caseNumber?: string;
 	userId: number;
 	amount: number;
 	restAmount: number;
 	currencyId: number;
+	period: PaymentPeriod;
 	payments: {
 		create: CreatePaymentData[];
 	};
+}
+
+export interface EditPaymentData {
+	payment_number: number;
+	due_date: Date;
+	amount: number;
+}
+
+export interface EditCaseData {
+	description: string;
+	clientName: string;
+	clientPhone: string;
+	clientEmail: string | null;
+	caseNumber: string | null;
+	type: typeCase;
+	period: PaymentPeriod;
+	amount: number;
+	pendingPayments: EditPaymentData[];
 }
 
 export interface CreatePaymentData {
@@ -76,6 +97,8 @@ export interface NewCaseFormData {
 	amount: string;
 	clientName: string;
 	clientPhone: string;
+	clientEmail: string;
+	caseNumber?: string;
 	quantity_payment: string;
 	due_date: string;
 	type: string;

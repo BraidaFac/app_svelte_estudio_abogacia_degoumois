@@ -5,7 +5,7 @@ import { loginUser } from '$lib/user.model';
 export const load: PageServerLoad = (event) => {
 	const user = event.locals.user;
 	if (user) {
-		throw redirect(302, '/');
+		throw redirect(302, '/dashboard');
 	}
 };
 
@@ -16,10 +16,7 @@ export const actions: Actions = {
 
 		const { error, token, jwtUser: user } = await loginUser(name, password);
 		if (error) {
-			return {
-				status: 401,
-				message: error
-			};
+			return fail(401, { message: error });
 		}
 		// Set the cookie
 		event.cookies.set('AuthorizationToken', `Bearer ${token}`, {
@@ -29,6 +26,6 @@ export const actions: Actions = {
 			sameSite: 'strict',
 			maxAge: 60 * 60 * 24 * 5 // 5 day
 		});
-		throw redirect(302, '/');
+		throw redirect(302, '/dashboard');
 	}
 };

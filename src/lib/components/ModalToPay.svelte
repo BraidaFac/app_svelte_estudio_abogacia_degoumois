@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { addThousandSeparator } from '$lib/utils/formatters';
+	import { addThousandSeparator, parseAmountInput, amountFocus, amountInput } from '$lib/utils/formatters';
 	import { toARS } from '$lib/utils/currency';
 	import { validateOrThrow, manageFormError } from '$lib/utils/form';
 	import { paymentSchema } from '$lib/components/paymentSchema';
@@ -8,6 +8,7 @@
 	import { invalidate } from '$app/navigation';
 	import type { FormattedCase } from '$lib/types/case.types';
 	import { X } from '@lucide/svelte';
+	import { handleApiResponse } from '$lib/utils/response';
 
 	let {
 		dialog = $bindable<HTMLDialogElement | undefined>(),
@@ -23,13 +24,21 @@
 
 	const { user } = page.data;
 
+	function formatNative(amount: number, currencyName: string): string {
+		const decimals = currencyName === 'JUS' ? 3 : currencyName === 'ARS' ? 0 : 2;
+		return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: decimals }).format(amount);
+	}
+
 	$effect(() => {
-		if (caso && input_native && input_pesos) {
-			// Last payment: lock to restAmount in native currency
-			input_native!.value = caso.restAmount.toFixed(3).replace(/\./, ',');
-			input_pesos!.value = addThousandSeparator(
-				Math.round(toARS(caso.restAmount, caso.currency.value))
-			);
+		if (caso && input_native) {
+			const currentPayment = caso.payments.find((p) => p.current);
+			const suggestedAmount = currentPayment?.amount ?? caso.restAmount;
+			input_native.value = formatNative(suggestedAmount, caso.currency.name);
+			if (input_pesos) {
+				input_pesos.value = addThousandSeparator(
+					Math.round(toARS(suggestedAmount, caso.currency.value))
+				);
+			}
 		}
 	});
 
@@ -38,15 +47,21 @@
 			loading = true;
 			const form = new FormData(case_form!);
 			const data = Object.fromEntries(form.entries());
+			data.amount = input_native?.value ?? '';
 			validateOrThrow(data, paymentSchema);
 			const response = await fetch('/api/newPayment', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(data)
 			});
-			response_state = response.status;
 			loading = false;
-			if (response.status === 200 && page.url.pathname === '/') { invalidate('update:cases'); }
+			const result = await handleApiResponse(response);
+			if (result.success) {
+				handleClose();
+				if (page.url.pathname === '/') invalidate('update:cases');
+			} else {
+				response_state = response.status;
+			}
 		} catch (error) {
 			loading = false;
 			formErrors = { errors: manageFormError(error) };
@@ -59,36 +74,34 @@
 		const { currency } = caso;
 
 		if (input === input_pesos) {
+			// Pesos: solo dígitos enteros
+			const lastChar = input.value.slice(-1);
+			if (lastChar && !/\d/.test(lastChar)) { input.value = input.value.slice(0, -1); return; }
 			input.value = addThousandSeparator(+input.value.replace(/\./g, ''));
+		} else if (input === input_native) {
+			amountInput(event); // filtra: solo dígitos y una coma decimal
 		}
 
 		const value = input === input_pesos
 			? +input.value.replace(/\./g, '')
-			: +input.value.replace(/,/g, '.');
+			: parseAmountInput(input.value); // punto=miles, coma=decimal
 
 		if (isNaN(value)) { input.value = input.value.slice(0, -1); return; }
 
-		if (caso.quantityPaymentsToPay === 1) {
-			// Lock to restAmount
-			input_native!.value = caso.restAmount.toFixed(3).replace(/\./, ',');
-			input_pesos!.value = addThousandSeparator(Math.round(toARS(caso.restAmount, currency.value)));
-			return;
-		}
+		if (caso.quantityPaymentsToPay === 1) return;
 
-		if (!value) { input_native!.value = ''; input_pesos!.value = ''; return; }
+		if (!input.value.trim()) { input_native!.value = ''; if (input_pesos) input_pesos.value = ''; return; }
 
 		if (input === input_pesos) {
 			const nativeVal = value / currency.value;
 			if (nativeVal > caso.restAmount) {
-				input_native!.value = caso.restAmount.toFixed(3).replace(/\./, ',');
-				input_pesos!.value = addThousandSeparator(Math.round(toARS(caso.restAmount, currency.value)));
+				input_native!.value = formatNative(caso.restAmount, currency.name);
+				if (input_pesos) input_pesos.value = addThousandSeparator(Math.round(toARS(caso.restAmount, currency.value)));
 			} else {
-				input_native!.value = nativeVal.toFixed(3).replace(/\./, ',');
+				input_native!.value = formatNative(nativeVal, currency.name);
 			}
 		} else if (input === input_native) {
-			const capped = Math.min(value, caso.restAmount);
-			input_native!.value = capped.toFixed(3).replace(/\./, ',');
-			input_pesos!.value = addThousandSeparator(Math.round(toARS(capped, currency.value)));
+			if (input_pesos) input_pesos.value = addThousandSeparator(Math.round(toARS(value, currency.value)));
 		}
 	}
 
@@ -105,7 +118,7 @@
 	}
 </script>
 
-<dialog bind:this={dialog}>
+<dialog bind:this={dialog} onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}>
 	<div class="modal-panel" style="width: min(90vw, 48rem);">
 		<div class="modal-header">
 			<h2 class="modal-title">Registrar cobro</h2>
@@ -134,31 +147,28 @@
 								<input autocomplete="off" class="input" name="paymentNumber" readonly type="text" value={calculatePaymentNumber()} />
 							</div>
 							<div class="label">
-								<span>Total {caso.currency.name}</span>
-								<input autocomplete="off" class="input" readonly type="text" value={caso.amount.toFixed(2).replace('.', ',')} />
+								<span>Total caso</span>
+								<input autocomplete="off" class="input" readonly type="text" value={formatNative(caso.amount, caso.currency.name)} />
 							</div>
 							<div class="label">
 								<span>Adeuda {caso.currency.name}</span>
-								<input autocomplete="off" class="input" readonly type="text" value={caso.restAmount.toFixed(3).replace('.', ',')} style="color: #ff6b5e;" />
+								<input autocomplete="off" class="input" readonly type="text" value={formatNative(caso.restAmount, caso.currency.name)} style="color: #ff6b5e;" />
 							</div>
 							<div class="label">
-								<span>{caso?.currency.name ?? 'Monto'}</span>
-								<input autocomplete="off" class="input" bind:this={input_native} oninput={onInputTransform} type="text" placeholder={caso.currency.name} />
+								<span>Cuota {caso.currency.name}</span>
+								<input autocomplete="off" class="input" bind:this={input_native} onfocus={amountFocus} oninput={onInputTransform} onblur={(e) => { const raw = parseAmountInput((e.target as HTMLInputElement).value); const n = Math.min(raw, caso.restAmount); if (n > 0) { (e.target as HTMLInputElement).value = formatNative(n, caso.currency.name); if (input_pesos) input_pesos.value = addThousandSeparator(Math.round(toARS(n, caso.currency.value))); } else { (e.target as HTMLInputElement).value = ''; if (input_pesos) input_pesos.value = ''; } }} type="text" placeholder={caso.currency.name} readonly={caso.quantityPaymentsToPay === 1} />
 								{#if formErrors?.errors?.['amount']}<span class="text-error">{formErrors.errors['amount']}</span>{/if}
-								{#if caso?.currency.name !== 'ARS'}
-									<p style="font-size: 0.8rem; opacity: 0.6; margin-top: 0.25rem;">
-										≈ {input_pesos?.value} pesos
-									</p>
-								{/if}
 							</div>
-							<div class="label">
-								<span>Pesos</span>
-								<input autocomplete="off" class="input" type="text" bind:this={input_pesos} oninput={onInputTransform} placeholder="$ PESOS" />
-							</div>
+							{#if caso.currency.name !== 'ARS'}
+								<div class="label">
+									<span>Pesos</span>
+									<input autocomplete="off" class="input" type="text" bind:this={input_pesos} onfocus={amountFocus} oninput={onInputTransform} placeholder="$ PESOS" readonly={caso.quantityPaymentsToPay === 1} />
+								</div>
+							{/if}
 							<div class="label">
 								<span>Método de pago</span>
 								<select class="select" name="typepayment">
-									{#each Object.keys(PaymentType) as type}<option value={type}>{type}</option>{/each}
+									{#each Object.entries(PaymentType) as [key, label]}<option value={key}>{label}</option>{/each}
 								</select>
 							</div>
 							<div class="label">

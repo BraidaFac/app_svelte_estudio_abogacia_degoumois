@@ -33,7 +33,7 @@
 	}
 </script>
 
-<dialog bind:this={dialog}>
+<dialog bind:this={dialog} onclick={(e) => { if (e.target === e.currentTarget) handleClose(); }}>
 	<div class="modal-panel modal-panel-sm">
 		<div class="modal-header">
 			<h2 class="modal-title">Conversiones</h2>

@@ -37,7 +37,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 				},
 				payments,
 				created: formatDateToDMY(c.createdAt),
-				quantityPaymentsToPay: c.payments.filter((p) => !p.payment_date).length
+				quantityPaymentsToPay: c.payments.filter((p) => !p.payment_date).length,
+				searchTerms: [c.description, c.clientName, c.type, c.clientPhone, c.clientEmail ?? ''].join(' ')
 			};
 		});
 

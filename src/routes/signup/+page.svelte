@@ -8,7 +8,6 @@
 	import { Trash2 } from '@lucide/svelte';
 
 	let { form, data }: { form: ActionData; data: PageData } = $props();
-	const users: { id: number; name: string; role: string }[] = [];
 	const currentUser = page.data.user;
 	let loading = $state(false);
 	let fieldErrors = $state<Record<string, string | string[] | undefined>>({});
@@ -118,19 +117,19 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#if !users || users.length === 0}
+					{#if !data.users || data.users.length === 0}
 						<tr>
 							<td colspan="3" style="text-align: center; padding: 2rem; color: #6e6e6e;">
 								No hay usuarios
 							</td>
 						</tr>
 					{:else}
-						{#each users as user (user.id)}
+						{#each data.users as user (user.id)}
 							<tr>
 								<td>{user.name}</td>
 								<td style="color: #a8a8a8;">{user.role}</td>
 								<td class="col-actions">
-									{#if user.id !== currentUser.id}
+									{#if currentUser && user.id !== currentUser.id}
 										<form
 											method="POST"
 											action="?/delete"

@@ -3,7 +3,7 @@
 	import type { ModalContext } from '$lib/types/modal.types';
 	import { getContext } from 'svelte';
 	import { DropdownMenu } from 'bits-ui';
-	import { ChevronDown, FilePlus, Scale, UserPlus, History, LogOut } from '@lucide/svelte';
+	import { ChevronDown, FilePlus, Scale, UserPlus, LogOut } from '@lucide/svelte';
 
 	let { user }: { user: { id: number; name: string; role: Role } } = $props();
 
@@ -41,14 +41,6 @@
 						<a {...props} href="/signup">
 							<UserPlus size={14} />
 							Alta Usuario
-						</a>
-					{/snippet}
-				</DropdownMenu.Item>
-				<DropdownMenu.Item class="dropdown-item">
-					{#snippet child({ props })}
-						<a {...props} href="/historial">
-							<History size={14} />
-							Historial
 						</a>
 					{/snippet}
 				</DropdownMenu.Item>

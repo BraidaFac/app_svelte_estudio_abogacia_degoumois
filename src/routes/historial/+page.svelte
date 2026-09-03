@@ -1,43 +1,20 @@
 <script lang="ts">
 	import BackToTop from '$lib/components/BackToTop.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
+	import TableFilters from '$lib/components/TableFilters.svelte';
+	import { createTableStore } from '$lib/stores/table.svelte';
 	import type { ModalContext } from '$lib/types/modal.types';
 	import { formatAmount } from '$lib/utils/currency';
 	import { getContext } from 'svelte';
 	import type { PageData } from './$types';
-	import { CheckCircle, Trash2 } from '@lucide/svelte';
+	import { CheckCircle, Trash2, ArrowUp, ArrowDown } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
 	let cases = $derived(data.cases);
 
-	const { openDetails } = getContext<ModalContext>('modals');
+	const { openDetails, openDelete } = getContext<ModalContext>('modals');
 
-	const PAGE_SIZE = 20;
-	let currentPage = $state(1);
-
-	let totalPages = $derived(Math.ceil(cases.length / PAGE_SIZE));
-	let paginatedCases = $derived(
-		cases.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
-	);
-
-	function goToPage(page: number) {
-		currentPage = Math.max(1, Math.min(page, totalPages));
-		window.scrollTo({ top: 0, behavior: 'smooth' });
-	}
-
-	function confirmDelete(caso: any) {
-		if (!confirm('¿Estás seguro de eliminar el caso?')) return;
-		const data = new FormData();
-		data.append('caseId', String(caso.id));
-		fetch('/historial', { method: 'POST', body: data }).then(async (response) => {
-			if (response.status !== 200) {
-				const error = (await response.json()).error?.message ?? 'Error al eliminar';
-				alert(error);
-			} else {
-				alert('Se ha eliminado el caso correctamente');
-				window.location.reload();
-			}
-		});
-	}
+	const table = createTableStore(() => cases, 25);
 </script>
 
 <BackToTop />
@@ -56,70 +33,103 @@
 			<p style="color: #6e6e6e;">No hay casos en el historial</p>
 		</div>
 	{:else}
-		<div class="overflow-x-auto">
-			<table class="er-table" style="min-width: 760px;">
-				<thead>
-					<tr>
-						<th>Estado</th>
-						<th>Descripción</th>
-						<th>Tipo</th>
-						<th>Cliente</th>
-						<th>Teléfono</th>
-						<th class="col-numeric">Monto saldado</th>
-						<th>Creado</th>
-						<th class="col-actions">Detalles</th>
-						<th class="col-actions">Eliminar</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each paginatedCases as caso}
-						<tr class="row-pagada">
-							<td class="status-cell">
-								<div class="status-inner">
-									<CheckCircle size={12} />
-									Saldado
-								</div>
-							</td>
-							<td>{caso.description}</td>
-							<td style="color: #a8a8a8;">{caso.type}</td>
-							<td>{caso.clientName}</td>
-							<td style="color: #a8a8a8;">{caso.clientPhone}</td>
-							<td class="col-numeric">{formatAmount(caso.amount, caso.currency.name)}</td>
-							<td>{caso.created}</td>
-							<td class="col-actions">
-								<button class="btn btn-ghost btn-sm" onclick={() => openDetails(caso)}>
-									Ver
-								</button>
-							</td>
-							<td class="col-actions">
-								<button class="btn btn-danger btn-sm" onclick={() => confirmDelete(caso)}>
-									<Trash2 size={13} />
-								</button>
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
+		<TableFilters store={table} />
 
-		{#if totalPages > 1}
-			<div class="pagination">
-				<button
-					class="btn btn-ghost btn-sm"
-					disabled={currentPage === 1}
-					onclick={() => goToPage(currentPage - 1)}
-				>
-					← Anterior
-				</button>
-				<span class="pagination-info">Página {currentPage} de {totalPages}</span>
-				<button
-					class="btn btn-ghost btn-sm"
-					disabled={currentPage === totalPages}
-					onclick={() => goToPage(currentPage + 1)}
-				>
-					Siguiente →
-				</button>
+		{#if table.paginatedItems.length === 0}
+			<div class="empty-state">
+				<p style="color: #6e6e6e;">Sin resultados para <strong>"{table.search}"</strong></p>
 			</div>
+		{:else}
+			<div class="overflow-x-auto">
+				<table class="er-table" style="min-width: 760px;">
+					<thead>
+						<tr>
+							<th>Estado</th>
+							<th class="th-sort" onclick={() => table.toggleSort('caseNumber')}>
+								N° Caso
+								<span class="sort-icon" class:active={table.sortKey === 'caseNumber'}>
+									{#if table.sortKey === 'caseNumber' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+								</span>
+							</th>
+							<th class="th-sort" onclick={() => table.toggleSort('description')}>
+								Descripción
+								<span class="sort-icon" class:active={table.sortKey === 'description'}>
+									{#if table.sortKey === 'description' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+								</span>
+							</th>
+							<th class="th-sort" onclick={() => table.toggleSort('type')}>
+								Tipo
+								<span class="sort-icon" class:active={table.sortKey === 'type'}>
+									{#if table.sortKey === 'type' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+								</span>
+							</th>
+							<th class="th-sort" onclick={() => table.toggleSort('clientName')}>
+								Cliente
+								<span class="sort-icon" class:active={table.sortKey === 'clientName'}>
+									{#if table.sortKey === 'clientName' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+								</span>
+							</th>
+							<th class="th-sort" onclick={() => table.toggleSort('clientPhone')}>
+								Teléfono
+								<span class="sort-icon" class:active={table.sortKey === 'clientPhone'}>
+									{#if table.sortKey === 'clientPhone' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+								</span>
+							</th>
+							<th class="col-numeric th-sort" onclick={() => table.toggleSort('amount')}>
+								Monto saldado
+								<span class="sort-icon" class:active={table.sortKey === 'amount'}>
+									{#if table.sortKey === 'amount' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+								</span>
+							</th>
+							<th class="th-sort" onclick={() => table.toggleSort('created')}>
+								Creado
+								<span class="sort-icon" class:active={table.sortKey === 'created'}>
+									{#if table.sortKey === 'created' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+								</span>
+							</th>
+							<th class="col-actions">Detalles</th>
+							<th class="col-actions">Eliminar</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each table.paginatedItems as caso}
+							<tr class="row-pagada">
+								<td class="status-cell">
+									<div class="status-inner">
+										<CheckCircle size={12} />
+										Saldado
+									</div>
+								</td>
+								<td style="color: #a8a8a8;">{caso.caseNumber ?? '—'}</td>
+								<td>{caso.description}</td>
+								<td style="color: #a8a8a8;">{caso.type}</td>
+								<td>{caso.clientName}</td>
+								<td style="color: #a8a8a8;">{caso.clientPhone}</td>
+								<td class="col-numeric">{formatAmount(caso.amount, caso.currency.name)}</td>
+								<td>{caso.created}</td>
+								<td class="col-actions">
+									<button class="btn btn-ghost btn-sm" onclick={() => openDetails(caso)}>
+										Ver
+									</button>
+								</td>
+								<td class="col-actions">
+									<button class="btn btn-danger btn-sm" onclick={() => openDelete(caso)}>
+										<Trash2 size={13} />
+									</button>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+
+			<Pagination
+				currentPage={table.page}
+				totalPages={table.totalPages}
+				goToPage={table.goToPage}
+				pageSize={table.pageSize}
+				onPageSizeChange={(v) => (table.pageSize = v)}
+			/>
 		{/if}
 	{/if}
 </section>
@@ -146,16 +156,27 @@
 		text-align: center;
 	}
 
-	.pagination {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 1rem;
-		margin-top: 1.5rem;
+	.th-sort {
+		cursor: pointer;
+		user-select: none;
+		white-space: nowrap;
 	}
 
-	.pagination-info {
-		font-size: 0.875rem;
-		color: #a8a8a8;
+	.th-sort:hover { color: #d0d0d0; }
+
+	.sort-icon {
+		display: inline-flex;
+		align-items: center;
+		margin-left: 0.25rem;
+		vertical-align: middle;
+		opacity: 0.2;
+		transition: opacity 150ms ease;
 	}
+
+	.sort-icon.active {
+		opacity: 1;
+		color: rgba(212, 49, 36, 0.85);
+	}
+
+	.th-sort:hover .sort-icon:not(.active) { opacity: 0.5; }
 </style>

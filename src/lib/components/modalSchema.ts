@@ -16,6 +16,11 @@ export const modalSchema = z.object({
 		.min(6, { message: 'Número incorrecto' })
 		.trim(),
 
+	clientEmail: z
+		.string({ required_error: 'Ingrese email del cliente' })
+		.email({ message: 'Email inválido' })
+		.trim(),
+
 	description: z
 		.string({ required_error: 'Ingrese descripción' })
 		.min(1, { message: 'Ingrese descripción' })

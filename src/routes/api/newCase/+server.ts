@@ -4,9 +4,9 @@
 
 import { saveCase } from '$lib/case.model';
 import { getDefaultCurrency } from '$lib/currency.model';
-import { createErrorResponse } from '$lib/utils/api';
+import { apiSuccess, apiError, ApiErrors } from '$lib/utils/api';
 import type { CreatePaymentData } from '$lib/types/case.types';
-import type { typeCase, PaymentType } from '@prisma/client';
+import type { typeCase, PaymentType, PaymentPeriod } from '@prisma/client';
 import { redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { z, ZodError } from 'zod';
@@ -30,6 +30,8 @@ const NewCaseSchema = z.object({
 	amount: z.string().min(1),
 	clientName: z.string().min(1),
 	clientPhone: z.string().min(1),
+	clientEmail: z.string().email().optional(),
+	caseNumber: z.string().max(50).optional(),
 	quantity_payment: z.string().min(1),
 	due_date: z.string().min(1),
 	type: z.string().min(1),
@@ -58,9 +60,9 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		data = NewCaseSchema.parse(rawData);
 	} catch (error) {
 		if (error instanceof ZodError) {
-			return createErrorResponse(error.errors[0]?.message ?? 'Datos inválidos', 400);
+			return apiError(ApiErrors.VALIDATION, error.errors[0]?.message ?? 'Datos inválidos', 400);
 		}
-		return createErrorResponse('Datos inválidos', 400);
+		return apiError(ApiErrors.VALIDATION, 'Datos inválidos', 400);
 	}
 
 	// Resolve currency — use provided currencyId or fall back to default
@@ -75,10 +77,10 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	try {
 		const caso = buildCaseData(data, user.id, resolvedCurrencyId);
 		const response = await saveCase(caso);
-		return new Response(JSON.stringify(response), { status: 201 });
+		return apiSuccess(response, 'Caso creado correctamente', 201);
 	} catch (error) {
 		console.error('Error creating case:', error);
-		return createErrorResponse('Error al crear caso', 500);
+		return apiError(ApiErrors.SERVER_ERROR, 'Error al crear caso', 500);
 	}
 };
 
@@ -92,6 +94,8 @@ function buildCaseData(data: z.infer<typeof NewCaseSchema>, userId: number, curr
 		amount,
 		clientName,
 		clientPhone,
+		clientEmail,
+		caseNumber,
 		quantity_payment,
 		amount_payment,
 		due_date,
@@ -102,9 +106,9 @@ function buildCaseData(data: z.infer<typeof NewCaseSchema>, userId: number, curr
 	} = data;
 
 	// amount is already in native currency (JUS, USD, or EUR)
-	const amountNative = parseFloat(amount.replace(',', '.'));
+	const amountNative = parseFloat(amount.replace(/\./g, '').replace(',', '.'));
 	const amountPaymentNative = amount_payment
-		? parseFloat(amount_payment.replaceAll('.', ''))
+		? parseFloat(amount_payment.replace(/\./g, '').replace(',', '.'))
 		: undefined;
 
 	const payments = buildPayments(
@@ -113,7 +117,8 @@ function buildCaseData(data: z.infer<typeof NewCaseSchema>, userId: number, curr
 		period,
 		typepayment,
 		collector,
-		amountPaymentNative
+		amountPaymentNative,
+		amountNative
 	);
 
 	// restAmount is in native currency — direct subtraction, no rate conversion
@@ -126,8 +131,11 @@ function buildCaseData(data: z.infer<typeof NewCaseSchema>, userId: number, curr
 		type: type as typeCase,
 		clientName,
 		clientPhone,
+		clientEmail: clientEmail || undefined,
+		caseNumber: caseNumber || undefined,
 		userId,
 		currencyId,
+		period: period as PaymentPeriod,
 		payments: { create: payments },
 		amount: amountNative,
 		restAmount
@@ -140,20 +148,37 @@ function buildPayments(
 	period: string,
 	typepayment?: string,
 	collector?: string,
-	amountPayment?: number
+	amountPayment?: number,
+	totalAmount: number = 0
 ): CreatePaymentData[] {
+	const hasInitialPayment = Boolean(amountPayment);
+	// Distribute pending amount evenly across non-paid payments
+	const pendingCount = hasInitialPayment ? Math.max(quantity - 1, 0) : quantity;
+	const pendingTotal = hasInitialPayment ? totalAmount - (amountPayment ?? 0) : totalAmount;
+	const perPending = pendingCount > 0 ? parseFloat((pendingTotal / pendingCount).toFixed(4)) : 0;
+
 	return Array.from({ length: quantity }, (_, i) => {
 		const dueDate = calculateDueDate(startDate, period, i);
 		const isFirstPayment = i === 0;
-		const hasInitialPayment = Boolean(amountPayment);
+
+		let amount: number | undefined;
+		if (isFirstPayment && hasInitialPayment) {
+			amount = parseFloat((amountPayment!).toFixed(4));
+		} else if (pendingCount > 0) {
+			const pendingIdx = hasInitialPayment ? i - 1 : i;
+			// Last pending payment absorbs rounding difference
+			amount =
+				pendingIdx === pendingCount - 1
+					? parseFloat((pendingTotal - perPending * (pendingCount - 1)).toFixed(4))
+					: perPending;
+		}
+
 		return {
 			payment_number: i + 1,
 			due_date: dueDate,
 			typepayment: typepayment && isFirstPayment ? (typepayment as PaymentType) : undefined,
 			collector: collector && isFirstPayment ? collector : undefined,
-			// amount already in native currency — no conversion needed
-			amount:
-				amountPayment && isFirstPayment ? parseFloat(amountPayment.toFixed(3)) : undefined,
+			amount,
 			current: (isFirstPayment && !hasInitialPayment) || (i === 1 && hasInitialPayment),
 			payment_date: isFirstPayment && hasInitialPayment ? dueDate : undefined
 		};

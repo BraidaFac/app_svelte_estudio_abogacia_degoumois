@@ -1,7 +1,7 @@
 import { getOnTimeCases, getOverDueCases, getSoonDueCases } from '$lib/case.model';
 import type { ClientPayment, FormattedCase } from '$lib/types/case.types';
 import { formatDateToDMY } from '$lib/utils/formatters';
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 type CaseStatus = 'VENCIDO' | 'PROXIMO' | 'ATIEMPO';
@@ -29,7 +29,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw redirect(302, '/');
 	}
 
-	const rawCases = await handler();
+	let rawCases: Awaited<ReturnType<typeof handler>>;
+	try {
+		rawCases = await handler();
+	} catch (err) {
+		console.error('Error loading cases by estado:', err);
+		throw error(500, 'No se pudieron cargar los expedientes');
+	}
 
 	if (rawCases.length === 0) {
 		return { user, cases: [] };

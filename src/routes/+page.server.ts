@@ -1,7 +1,7 @@
 import { classifyCaseByDate, getCasesWithDebt } from '$lib/case.model';
 import type { ClientPayment, FormattedCase } from '$lib/types/case.types';
 import { formatDateToDashDMY } from '$lib/utils/formatters';
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, depends }) => {
@@ -12,7 +12,13 @@ export const load: PageServerLoad = async ({ locals, depends }) => {
 		throw redirect(302, '/login');
 	}
 
-	const rawCases = await getCasesWithDebt();
+	let rawCases: Awaited<ReturnType<typeof getCasesWithDebt>>;
+	try {
+		rawCases = await getCasesWithDebt();
+	} catch (err) {
+		console.error('Error loading cases:', err);
+		throw error(500, 'No se pudieron cargar los expedientes');
+	}
 
 	if (rawCases.length === 0) {
 		return { user, cases: [], counts: { overdue: 0, soon: 0, onTime: 0 } };

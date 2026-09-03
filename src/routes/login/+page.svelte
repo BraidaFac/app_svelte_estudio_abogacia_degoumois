@@ -20,9 +20,9 @@
 <div class="login-page">
 	<div class="login-container">
 		<div class="login-brand">
-			<div class="brand-divider" style="margin-bottom: 2rem;">& ASOCIADOS</div>
+			<div class="brand-divider" style="margin-bottom: 2rem;">Sistema de Gestión</div>
 			<h1 class="login-title">Estudio<br />Degoumois</h1>
-			<div class="brand-divider" style="margin-top: 2rem;">Sistema de Gestión</div>
+			<div class="brand-divider" style="margin-top: 2rem;">& Asociados</div>
 		</div>
 
 		<form

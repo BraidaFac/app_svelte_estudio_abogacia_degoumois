@@ -45,7 +45,7 @@ export function convert(amount: number, fromRate: number, toRate: number): numbe
  */
 export function formatAmount(amount: number, currencyName: string): string {
 	if (currencyName === 'JUS') {
-		return `${amount.toFixed(3).replace('.', ',')} JUS`;
+		return `${new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 3 }).format(amount)} JUS`;
 	}
 	const symbol = CURRENCY_SYMBOLS[currencyName] ?? currencyName;
 	const formatted = amount.toLocaleString('es-AR', {
