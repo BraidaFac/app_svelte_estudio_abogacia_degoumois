@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	const NEW_URL = 'https://www.degoumoisabogados.com.ar';
+	const NEW_URL = 'https://degoumoisabogados.com.ar';
 	let countdown = $state(10);
 
 	onMount(() => {
@@ -45,7 +45,7 @@
 		</p>
 
 		<a href={NEW_URL} class="new-url-btn">
-			www.degoumoisabogados.com.ar
+			degoumoisabogados.com.ar
 		</a>
 
 		<p class="countdown">
@@ -128,7 +128,9 @@
 	}
 
 	.new-url-btn {
-		display: inline-block;
+		display: block;
+		width: fit-content;
+		margin: 0 auto 1.75rem;
 		background: #d43124;
 		color: #fff;
 		text-decoration: none;
@@ -138,7 +140,6 @@
 		letter-spacing: 0.02em;
 		padding: 0.75rem 1.75rem;
 		border-radius: 6px;
-		margin-bottom: 1.75rem;
 		transition: background 150ms ease, box-shadow 150ms ease;
 	}
 
