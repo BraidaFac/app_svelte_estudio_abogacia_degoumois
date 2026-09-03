@@ -74,6 +74,15 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 		resolvedCurrencyId = defaultCurrency.id;
 	}
 
+	// 1 cuota + pago parcial no tiene sentido (no hay siguiente cuota para el saldo)
+	if (parseInt(data.quantity_payment) === 1 && data.amount_payment) {
+		const total = parseFloat(data.amount.replace(/\./g, '').replace(',', '.'));
+		const partial = parseFloat(data.amount_payment.replace(/\./g, '').replace(',', '.'));
+		if (partial < total) {
+			return apiError(ApiErrors.VALIDATION, 'Con 1 cuota el monto a entregar debe ser el total', 400);
+		}
+	}
+
 	try {
 		const caso = buildCaseData(data, user.id, resolvedCurrencyId);
 		const response = await saveCase(caso);

@@ -17,9 +17,11 @@ export const modalSchema = z.object({
 		.trim(),
 
 	clientEmail: z
-		.string({ required_error: 'Ingrese email del cliente' })
+		.string()
 		.email({ message: 'Email inválido' })
-		.trim(),
+		.trim()
+		.optional()
+		.or(z.literal('')),
 
 	description: z
 		.string({ required_error: 'Ingrese descripción' })

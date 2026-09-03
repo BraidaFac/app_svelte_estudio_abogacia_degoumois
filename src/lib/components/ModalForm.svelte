@@ -27,6 +27,7 @@
 	let input_pesos = $state<HTMLInputElement | undefined>();
 	let input_quantity_payment = $state<HTMLInputElement | undefined>();
 	let amount_payment = $state('');
+	let quantityValue = $state('');
 	let case_form = $state<HTMLFormElement | undefined>();
 	let response_state = $state<number | undefined>();
 	let dateValue = $state<CalendarDate | undefined>(undefined);
@@ -48,6 +49,7 @@
 	const selectedCurrency = $derived(
 		currencies.find((c) => c.id === selectedCurrencyId) ?? currencies[0]
 	);
+	const isSingleQuota = $derived(quantityValue === '1');
 
 	const isTodayFunction = (today: Date, date: Date) =>
 		differenceInHours(today, date) < 24 && differenceInHours(today, date) > -24;
@@ -109,6 +111,7 @@
 		if (!selectedCurrency) return;
 		if (input === input_native) {
 			input_pesos!.value = addThousandSeparator(Math.round(toARS(numericValue, selectedCurrency.value)));
+			calculatePayment();
 		} else if (input === input_pesos) {
 			const nativeVal = numericValue / selectedCurrency.value;
 			input_native!.value = formatNumber(
@@ -155,6 +158,7 @@
 		dateValue = undefined;
 		datePickerKey++;
 		amount_payment = '';
+		quantityValue = '';
 		case_form?.reset();
 	}
 </script>
@@ -243,7 +247,7 @@
 						</div>
 						<div class="label">
 							<span>Cantidad de cuotas</span>
-							<input autocomplete="off" class="input" type="text" inputmode="numeric" oninput={(e) => { verifyQuantityPayment(e); calculatePayment(); }} bind:this={input_quantity_payment} placeholder="Cuotas" name="quantity_payment" />
+							<input autocomplete="off" class="input" type="text" inputmode="numeric" oninput={(e) => { verifyQuantityPayment(e); quantityValue = (e.target as HTMLInputElement).value; calculatePayment(); }} bind:this={input_quantity_payment} placeholder="Cuotas" name="quantity_payment" />
 							{#if formErrors?.errors?.['quantity_payment']}<span class="text-error">{formErrors.errors['quantity_payment']}</span>{/if}
 						</div>
 						<div class="label">
@@ -309,7 +313,10 @@
 						{#if dateValue && isToday}
 							<div class="label" transition:fade>
 								<span>Monto a entregar</span>
-								<input autocomplete="off" class="input" type="text" bind:value={amount_payment} oninput={verifyPayment} placeholder="Monto ({selectedCurrency?.name})" name="amount_payment" />
+								<input autocomplete="off" class="input" type="text" bind:value={amount_payment} oninput={verifyPayment} placeholder="Monto ({selectedCurrency?.name})" name="amount_payment" disabled={isSingleQuota} />
+								{#if isSingleQuota}
+									<span style="font-size: 0.75rem; color: #6e6e6e;">1 cuota: el cobro es por el monto total</span>
+								{/if}
 								{#if formErrors?.errors?.['amount_payment']}<span class="text-error">{formErrors.errors['amount_payment']}</span>{/if}
 							</div>
 							<div class="label" transition:fade>

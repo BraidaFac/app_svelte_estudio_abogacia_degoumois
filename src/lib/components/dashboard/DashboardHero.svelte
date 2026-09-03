@@ -73,12 +73,14 @@
 
 	.hero-value {
 		font-family: 'IBM Plex Mono', monospace;
-		font-size: 1.75rem;
+		font-size: clamp(1rem, 1.5vw, 1.35rem);
 		font-weight: 500;
 		font-variant-numeric: tabular-nums;
-		line-height: 1;
+		line-height: 1.2;
 		margin: 0;
 		color: var(--color-text-primary);
-		word-break: break-all;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 </style>

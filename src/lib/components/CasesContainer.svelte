@@ -7,13 +7,26 @@
 	import { formatAmount } from '$lib/utils/currency';
 	import { differenceInHours } from 'date-fns';
 	import { getContext } from 'svelte';
-	import { AlertCircle, Clock, CheckCircle, FileX, CreditCard, Pencil, Info, ArrowUp, ArrowDown } from '@lucide/svelte';
+	import { AlertCircle, Clock, CheckCircle, FileX, CreditCard, Pencil, Info, ArrowUp, ArrowDown, MoreVertical } from '@lucide/svelte';
 
 	let { cases }: { cases: FormattedCase[] } = $props();
 
 	const { openToPay, openDetails, openEdit } = getContext<ModalContext>('modals');
 
-	const table = createTableStore(() => cases, 25, 'dueDate', 'asc');
+	const table = createTableStore(() => cases, 10, 'updatedAt', 'desc');
+
+	let openMenuId = $state<number | null>(null);
+	let menuPos = $state({ top: 0, left: 0 });
+
+	function toggleMenu(id: number, e: MouseEvent) {
+		e.stopPropagation();
+		if (openMenuId === id) { openMenuId = null; return; }
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		menuPos = { top: rect.bottom + 4, left: rect.right - 160 };
+		openMenuId = id;
+	}
+
+	function closeMenu() { openMenuId = null; }
 
 	type RowStatus = 'row-vencida' | 'row-proximo' | 'row-atiempo';
 	type BadgeStatus = 'badge-vencida' | 'badge-proximo' | 'badge-atiempo';
@@ -38,6 +51,8 @@
 		return { rowClass: 'row-atiempo', badgeClass: 'badge-atiempo', label: 'Al día', icon: CheckCircle };
 	}
 </script>
+
+<svelte:window onclick={closeMenu} />
 
 {#if cases.length === 0 && !table.search}
 	<div class="empty-state">
@@ -70,22 +85,10 @@
 								{#if table.sortKey === 'description' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
 							</span>
 						</th>
-						<th class="th-sort" onclick={() => table.toggleSort('type')}>
-							Tipo
-							<span class="sort-icon" class:active={table.sortKey === 'type'}>
-								{#if table.sortKey === 'type' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
-							</span>
-						</th>
 						<th class="th-sort" onclick={() => table.toggleSort('clientName')}>
 							Cliente
 							<span class="sort-icon" class:active={table.sortKey === 'clientName'}>
 								{#if table.sortKey === 'clientName' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
-							</span>
-						</th>
-						<th class="th-sort" onclick={() => table.toggleSort('clientPhone')}>
-							Teléfono
-							<span class="sort-icon" class:active={table.sortKey === 'clientPhone'}>
-								{#if table.sortKey === 'clientPhone' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
 							</span>
 						</th>
 						<th class="col-numeric th-sort" onclick={() => table.toggleSort('restAmount')}>
@@ -120,30 +123,35 @@
 								</div>
 							</td>
 							<td style="color: #a8a8a8;">{caso.caseNumber ?? '—'}</td>
-							<td>{caso.description}</td>
-							<td style="color: #a8a8a8;">{caso.type}</td>
+							<td class="col-desc"><div class="desc-scroll">{caso.description}</div></td>
 							<td>{caso.clientName}</td>
-							<td style="color: #a8a8a8;">{caso.clientPhone}</td>
 							<td class="col-numeric">{formatAmount(caso.restAmount, caso.currency.name)}</td>
 							<td class="col-numeric">{caso.quantityPaymentsToPay}/{caso.payments.length}</td>
 							<td>{caso.dueDate ?? '—'}</td>
 							<td class="col-actions">
-								<div class="action-icons">
-									<button class="action-btn success" onclick={() => openToPay(caso)} title="Cobrar cuota">
-										<CreditCard size={15} />
-									</button>
-									<button class="action-btn warning" onclick={() => openEdit(caso)} title="Editar caso">
-										<Pencil size={15} />
-									</button>
-									<button class="action-btn ghost" onclick={() => openDetails(caso)} title="Ver detalles">
-										<Info size={15} />
-									</button>
-								</div>
+								<button class="kebab-btn" onclick={(e) => toggleMenu(caso.id, e)}>
+									<MoreVertical size={15} />
+								</button>
 							</td>
 						</tr>
 					{/each}
 				</tbody>
 			</table>
+
+			{#if openMenuId !== null}
+				{@const caso = table.paginatedItems.find(c => c.id === openMenuId)!}
+				<div class="dropdown-menu" style="top: {menuPos.top}px; left: {menuPos.left}px;" onclick={(e) => e.stopPropagation()}>
+					<button onclick={() => { openToPay(caso); closeMenu(); }}>
+						<CreditCard size={13} /> Cobrar cuota
+					</button>
+					<button onclick={() => { openEdit(caso); closeMenu(); }}>
+						<Pencil size={13} /> Editar
+					</button>
+					<button onclick={() => { openDetails(caso); closeMenu(); }}>
+						<Info size={13} /> Ver detalles
+					</button>
+				</div>
+			{/if}
 
 			<Pagination
 				currentPage={table.page}
@@ -181,6 +189,24 @@
 
 	.th-sort:hover .sort-icon:not(.active) { opacity: 0.5; }
 
+	.col-desc {
+		max-width: 200px;
+	}
+
+	.desc-scroll {
+		max-width: 200px;
+		white-space: nowrap;
+		overflow-x: auto;
+		scrollbar-width: thin;
+		scrollbar-color: #3e3e3e transparent;
+	}
+
+	.desc-scroll::-webkit-scrollbar { height: 3px; }
+	.desc-scroll::-webkit-scrollbar-track { background: transparent; }
+	.desc-scroll::-webkit-scrollbar-thumb { background: #3e3e3e; border-radius: 99px; transition: background 150ms ease; }
+	.desc-scroll:hover::-webkit-scrollbar-thumb { background: #606060; }
+
+
 	.empty-state {
 		display: flex;
 		flex-direction: column;
@@ -191,33 +217,54 @@
 		font-size: 1rem;
 	}
 
-	.action-icons {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		gap: 0.25rem;
-	}
-
-	.action-btn {
+	.kebab-btn {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 2rem;
-		height: 2rem;
+		width: 1.75rem;
+		height: 1.75rem;
 		border-radius: 4px;
-		border: 1px solid transparent;
+		border: 1px solid #2e2e2e;
 		background: transparent;
+		color: #6e6e6e;
 		cursor: pointer;
 		line-height: 0;
-		transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+		transition: background-color 120ms ease, color 120ms ease;
 	}
 
-	.action-btn.success { color: #3fb98a; border-color: rgba(63, 185, 138, 0.2); }
-	.action-btn.success:hover { background: rgba(63, 185, 138, 0.12); border-color: rgba(63, 185, 138, 0.4); }
+	.kebab-btn:hover { background: #1a1a1a; color: #f5f5f5; }
 
-	.action-btn.warning { color: #e6a93c; border-color: rgba(230, 169, 60, 0.2); }
-	.action-btn.warning:hover { background: rgba(230, 169, 60, 0.12); border-color: rgba(230, 169, 60, 0.4); }
+	:global(.dropdown-menu) {
+		position: fixed;
+		z-index: 1000;
+		background: #141414;
+		border: 1px solid #2e2e2e;
+		border-radius: 6px;
+		min-width: 160px;
+		padding: 0.25rem;
+		display: flex;
+		flex-direction: column;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+	}
 
-	.action-btn.ghost { color: #6e6e6e; border-color: #2e2e2e; }
-	.action-btn.ghost:hover { background: #1a1a1a; color: #f5f5f5; }
+	:global(.dropdown-menu button) {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		width: 100%;
+		padding: 0.5rem 0.75rem;
+		background: transparent;
+		border: none;
+		border-radius: 4px;
+		color: #c0c0c0;
+		cursor: pointer;
+		font-size: 0.8rem;
+		text-align: left;
+		transition: background 120ms ease, color 120ms ease;
+	}
+
+	:global(.dropdown-menu button:hover) {
+		background: #2a2a2a;
+		color: #f5f5f5;
+	}
 </style>

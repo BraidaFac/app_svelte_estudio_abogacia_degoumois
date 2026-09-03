@@ -5,7 +5,7 @@
 	import { page } from '$app/state';
 	import { getContext } from 'svelte';
 	import type { PageData } from './$types';
-	import { AlertCircle, Clock, CheckCircle, ArrowLeft, CreditCard, PackageCheck, Info, X } from '@lucide/svelte';
+	import { AlertCircle, Clock, CheckCircle, ArrowLeft, CreditCard, PackageCheck, Info, X, MoreVertical } from '@lucide/svelte';
 	import { invalidateAll } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
@@ -64,6 +64,19 @@
 		quickCloseDialog?.showModal();
 	}
 
+	let openMenuId = $state<number | null>(null);
+	let menuPos = $state({ top: 0, left: 0 });
+
+	function toggleMenu(id: number, e: MouseEvent) {
+		e.stopPropagation();
+		if (openMenuId === id) { openMenuId = null; return; }
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		menuPos = { top: rect.bottom + 4, left: rect.right - 160 };
+		openMenuId = id;
+	}
+
+	function closeMenu() { openMenuId = null; }
+
 	async function submitQuickClose() {
 		if (!quickCloseCaso || !quickCollector.trim()) return;
 		quickLoading = true;
@@ -82,6 +95,7 @@
 	}
 </script>
 
+<svelte:window onclick={closeMenu} />
 <BackToTop />
 
 <section class="p-4 md:p-6">
@@ -102,9 +116,7 @@
 				<tr>
 					<th>Estado</th>
 					<th>Descripción</th>
-					<th>Tipo</th>
 					<th>Cliente</th>
-					<th>Teléfono</th>
 					<th class="col-numeric">A saldar</th>
 					<th class="col-numeric">Cuotas</th>
 					<th>Fecha cobro</th>
@@ -114,7 +126,7 @@
 			<tbody>
 				{#if cases.length === 0}
 					<tr>
-						<td colspan="9" class="empty-cell">
+						<td colspan="7" class="empty-cell">
 							<span style="color: #6e6e6e;">No hay casos en esta categoría</span>
 						</td>
 					</tr>
@@ -127,25 +139,15 @@
 									{config.label}
 								</div>
 							</td>
-							<td>{caso.description}</td>
-							<td style="color: #a8a8a8;">{caso.type}</td>
+							<td class="col-desc"><div class="desc-scroll">{caso.description}</div></td>
 							<td>{caso.clientName}</td>
-							<td style="color: #a8a8a8;">{caso.clientPhone}</td>
 							<td class="col-numeric">{formatAmount(caso.restAmount, caso.currency.name)}</td>
-							<td class="col-numeric">{caso.quantityPaymentsToPay}</td>
+							<td class="col-numeric">{caso.quantityPaymentsToPay}/{caso.payments.length}</td>
 							<td>{caso.dueDate ?? '—'}</td>
 							<td class="col-actions">
-								<div class="action-icons">
-									<button class="action-btn success" onclick={() => openToPay(caso)} title="Cobrar cuota">
-										<CreditCard size={15} />
-									</button>
-									<button class="action-btn warning" onclick={() => quickClose(caso)} title="Cobrar todo">
-										<PackageCheck size={15} />
-									</button>
-									<button class="action-btn ghost" onclick={() => openDetails(caso)} title="Ver detalles">
-										<Info size={15} />
-									</button>
-								</div>
+								<button class="kebab-btn" onclick={(e) => toggleMenu(caso.id, e)}>
+									<MoreVertical size={15} />
+								</button>
 							</td>
 						</tr>
 					{/each}
@@ -154,6 +156,21 @@
 		</table>
 	</div>
 </section>
+
+{#if openMenuId !== null}
+	{@const caso = cases.find(c => c.id === openMenuId)!}
+	<div class="dropdown-menu" style="top: {menuPos.top}px; left: {menuPos.left}px;" onclick={(e) => e.stopPropagation()}>
+		<button onclick={() => { openToPay(caso); closeMenu(); }}>
+			<CreditCard size={13} /> Cobrar cuota
+		</button>
+		<button onclick={() => { quickClose(caso); closeMenu(); }}>
+			<PackageCheck size={13} /> Cobrar todo
+		</button>
+		<button onclick={() => { openDetails(caso); closeMenu(); }}>
+			<Info size={13} /> Ver detalles
+		</button>
+	</div>
+{/if}
 
 <!-- Quick close dialog -->
 <dialog bind:this={quickCloseDialog} onclick={(e) => { if (e.target === e.currentTarget) quickCloseDialog?.close(); }}>
@@ -223,38 +240,75 @@
 		margin: 0;
 	}
 
+
 	.empty-cell {
 		text-align: center;
 		padding: 3rem 1rem;
 	}
 
-	.action-icons {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		gap: 0.25rem;
+	.col-desc { max-width: 200px; }
+
+	.desc-scroll {
+		max-width: 200px;
+		white-space: nowrap;
+		overflow-x: auto;
+		scrollbar-width: thin;
+		scrollbar-color: #3e3e3e transparent;
 	}
 
-	.action-btn {
+	.desc-scroll::-webkit-scrollbar { height: 3px; }
+	.desc-scroll::-webkit-scrollbar-track { background: transparent; }
+	.desc-scroll::-webkit-scrollbar-thumb { background: #3e3e3e; border-radius: 99px; transition: background 150ms ease; }
+	.desc-scroll:hover::-webkit-scrollbar-thumb { background: #606060; }
+
+	.kebab-btn {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		width: 2rem;
-		height: 2rem;
+		width: 1.75rem;
+		height: 1.75rem;
 		border-radius: 4px;
-		border: 1px solid transparent;
+		border: 1px solid #2e2e2e;
 		background: transparent;
+		color: #6e6e6e;
 		cursor: pointer;
 		line-height: 0;
-		transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+		transition: background-color 120ms ease, color 120ms ease;
 	}
 
-	.action-btn.success { color: #3fb98a; border-color: rgba(63, 185, 138, 0.2); }
-	.action-btn.success:hover { background: rgba(63, 185, 138, 0.12); border-color: rgba(63, 185, 138, 0.4); }
+	.kebab-btn:hover { background: #1a1a1a; color: #f5f5f5; }
 
-	.action-btn.warning { color: #e6a93c; border-color: rgba(230, 169, 60, 0.2); }
-	.action-btn.warning:hover { background: rgba(230, 169, 60, 0.12); border-color: rgba(230, 169, 60, 0.4); }
+	.dropdown-menu {
+		position: fixed;
+		z-index: 1000;
+		background: #141414;
+		border: 1px solid #2e2e2e;
+		border-radius: 6px;
+		min-width: 160px;
+		padding: 0.25rem;
+		display: flex;
+		flex-direction: column;
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+	}
 
-	.action-btn.ghost { color: #6e6e6e; border-color: #2e2e2e; }
-	.action-btn.ghost:hover { background: #1a1a1a; color: #f5f5f5; }
+	.dropdown-menu button {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		width: 100%;
+		padding: 0.5rem 0.75rem;
+		background: transparent;
+		border: none;
+		border-radius: 4px;
+		color: #c0c0c0;
+		cursor: pointer;
+		font-size: 0.8rem;
+		text-align: left;
+		transition: background 120ms ease, color 120ms ease;
+	}
+
+	.dropdown-menu button:hover {
+		background: #2a2a2a;
+		color: #f5f5f5;
+	}
 </style>
