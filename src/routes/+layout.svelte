@@ -52,7 +52,20 @@
 	});
 </script>
 
-<Toaster {toaster} />
+<Toaster
+	{toaster}
+	base=""
+	padding=""
+	rounded=""
+	width=""
+	classes="er-toast"
+	stateSuccess="er-toast--success"
+	stateError="er-toast--error"
+	stateWarning="er-toast--warning"
+	stateInfo="er-toast--info"
+	titleBase=""
+	btnDismissBase="er-toast-close"
+/>
 <ModalForm bind:dialog={formDialog} />
 <ModalToPay bind:dialog={toPayDialog} caso={activeCaso} />
 <ModalCurrencies bind:dialog={currenciesDialog} />

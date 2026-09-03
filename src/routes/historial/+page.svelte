@@ -69,22 +69,10 @@
 									{#if table.sortKey === 'clientName' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
 								</span>
 							</th>
-							<th class="th-sort" onclick={() => table.toggleSort('clientPhone')}>
-								Teléfono
-								<span class="sort-icon" class:active={table.sortKey === 'clientPhone'}>
-									{#if table.sortKey === 'clientPhone' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
-								</span>
-							</th>
 							<th class="col-numeric th-sort" onclick={() => table.toggleSort('amount')}>
 								Monto saldado
 								<span class="sort-icon" class:active={table.sortKey === 'amount'}>
 									{#if table.sortKey === 'amount' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
-								</span>
-							</th>
-							<th class="th-sort" onclick={() => table.toggleSort('created')}>
-								Creado
-								<span class="sort-icon" class:active={table.sortKey === 'created'}>
-									{#if table.sortKey === 'created' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
 								</span>
 							</th>
 							<th class="col-actions">Detalles</th>
@@ -104,9 +92,7 @@
 								<td>{caso.description}</td>
 								<td style="color: #a8a8a8;">{caso.type}</td>
 								<td>{caso.clientName}</td>
-								<td style="color: #a8a8a8;">{caso.clientPhone}</td>
 								<td class="col-numeric">{formatAmount(caso.amount, caso.currency.name)}</td>
-								<td>{caso.created}</td>
 								<td class="col-actions">
 									<button class="btn btn-ghost btn-sm" onclick={() => openDetails(caso)}>
 										Ver

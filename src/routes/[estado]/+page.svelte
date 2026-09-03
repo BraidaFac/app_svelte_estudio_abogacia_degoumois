@@ -1,15 +1,20 @@
 <script lang="ts">
 	import BackToTop from '$lib/components/BackToTop.svelte';
+	import TableFilters from '$lib/components/TableFilters.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
+	import { createTableStore } from '$lib/stores/table.svelte';
 	import type { ModalContext } from '$lib/types/modal.types';
 	import { formatAmount } from '$lib/utils/currency';
 	import { page } from '$app/state';
 	import { getContext } from 'svelte';
 	import type { PageData } from './$types';
-	import { AlertCircle, Clock, CheckCircle, ArrowLeft, CreditCard, PackageCheck, Info, X, MoreVertical } from '@lucide/svelte';
+	import { AlertCircle, Clock, CheckCircle, ArrowLeft, CreditCard, PackageCheck, Info, X, MoreVertical, ArrowUp, ArrowDown } from '@lucide/svelte';
 	import { invalidateAll } from '$app/navigation';
 
 	let { data }: { data: PageData } = $props();
 	let cases = $derived(data.cases);
+
+	const table = createTableStore(() => cases, 25);
 
 	const param = (page.params.estado ?? '').toUpperCase();
 
@@ -110,28 +115,54 @@
 		</span>
 	</div>
 
-	<div class="overflow-x-auto">
-		<table class="er-table" style="min-width: 760px;">
-			<thead>
-				<tr>
-					<th>Estado</th>
-					<th>Descripción</th>
-					<th>Cliente</th>
-					<th class="col-numeric">A saldar</th>
-					<th class="col-numeric">Cuotas</th>
-					<th>Fecha cobro</th>
-					<th class="col-actions">Acciones</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#if cases.length === 0}
+	{#if cases.length > 0}
+		<TableFilters store={table} />
+	{/if}
+
+	{#if cases.length === 0}
+		<div class="empty-state">
+			<span style="color: #6e6e6e;">No hay casos en esta categoría</span>
+		</div>
+	{:else if table.paginatedItems.length === 0}
+		<div class="empty-state">
+			<span style="color: #6e6e6e;">Sin resultados para <strong>"{table.search}"</strong></span>
+		</div>
+	{:else}
+		<div class="overflow-x-auto">
+			<table class="er-table" style="min-width: 760px;">
+				<thead>
 					<tr>
-						<td colspan="7" class="empty-cell">
-							<span style="color: #6e6e6e;">No hay casos en esta categoría</span>
-						</td>
+						<th>Estado</th>
+						<th class="th-sort" onclick={() => table.toggleSort('description')}>
+							Descripción
+							<span class="sort-icon" class:active={table.sortKey === 'description'}>
+								{#if table.sortKey === 'description' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="th-sort" onclick={() => table.toggleSort('clientName')}>
+							Cliente
+							<span class="sort-icon" class:active={table.sortKey === 'clientName'}>
+								{#if table.sortKey === 'clientName' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="col-numeric th-sort" onclick={() => table.toggleSort('restAmount')}>
+							A saldar
+							<span class="sort-icon" class:active={table.sortKey === 'restAmount'}>
+								{#if table.sortKey === 'restAmount' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="col-numeric">Cuotas</th>
+						<th class="th-sort" onclick={() => table.toggleSort('dueDate')}>
+							Fecha cobro
+							<span class="sort-icon" class:active={table.sortKey === 'dueDate'}>
+								{#if table.sortKey === 'dueDate' && table.sortDir === 'desc'}<ArrowDown size={11} />{:else}<ArrowUp size={11} />{/if}
+							</span>
+						</th>
+						<th class="col-actions">Acciones</th>
 					</tr>
-				{:else}
-					{#each cases as caso (caso.id)}
+				</thead>
+				<tbody>
+					{#each table.paginatedItems as caso (caso.id)}
 						<tr class={config.rowClass}>
 							<td class="status-cell">
 								<div class="status-inner">
@@ -151,10 +182,18 @@
 							</td>
 						</tr>
 					{/each}
-				{/if}
-			</tbody>
-		</table>
-	</div>
+				</tbody>
+			</table>
+		</div>
+
+		<Pagination
+			currentPage={table.page}
+			totalPages={table.totalPages}
+			goToPage={table.goToPage}
+			pageSize={table.pageSize}
+			onPageSizeChange={(v) => (table.pageSize = v)}
+		/>
+	{/if}
 </section>
 
 {#if openMenuId !== null}
@@ -260,6 +299,35 @@
 	.desc-scroll::-webkit-scrollbar-track { background: transparent; }
 	.desc-scroll::-webkit-scrollbar-thumb { background: #3e3e3e; border-radius: 99px; transition: background 150ms ease; }
 	.desc-scroll:hover::-webkit-scrollbar-thumb { background: #606060; }
+
+	.empty-state {
+		margin-top: 4rem;
+		text-align: center;
+	}
+
+	.th-sort {
+		cursor: pointer;
+		user-select: none;
+		white-space: nowrap;
+	}
+
+	.th-sort:hover { color: #d0d0d0; }
+
+	.sort-icon {
+		display: inline-flex;
+		align-items: center;
+		margin-left: 0.25rem;
+		vertical-align: middle;
+		opacity: 0.2;
+		transition: opacity 150ms ease;
+	}
+
+	.sort-icon.active {
+		opacity: 1;
+		color: rgba(212, 49, 36, 0.85);
+	}
+
+	.th-sort:hover .sort-icon:not(.active) { opacity: 0.5; }
 
 	.kebab-btn {
 		display: inline-flex;

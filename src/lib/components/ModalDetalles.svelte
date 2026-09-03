@@ -2,10 +2,26 @@
 	import { invalidateAll } from '$app/navigation';
 	import type { FormattedCase, ClientPayment } from '$lib/types/case.types';
 	import type { ModalContext } from '$lib/types/modal.types';
-	import { formatDateToDMY, formatJUS, formatNumber, parseAmountInput, amountFocus, amountInput, amountBlur } from '$lib/utils/formatters';
+	import {
+		formatDateToDMY,
+		formatJUS,
+		formatNumber,
+		parseAmountInput,
+		amountFocus,
+		amountInput,
+		amountBlur
+	} from '$lib/utils/formatters';
 	import { toaster } from '$lib/stores/toast';
 	import { getContext } from 'svelte';
-	import { X, MoreVertical, CheckCircle2, Trash2, PackageCheck, Pencil, RefreshCw } from '@lucide/svelte';
+	import {
+		X,
+		MoreVertical,
+		CheckCircle2,
+		Trash2,
+		PackageCheck,
+		Pencil,
+		RefreshCw
+	} from '@lucide/svelte';
 	import { DatePicker } from 'bits-ui';
 	import { parseDate } from '@internationalized/date';
 	import type { CalendarDate } from '@internationalized/date';
@@ -16,7 +32,12 @@
 		caso,
 		startEdit = $bindable(false),
 		triggerDelete = $bindable(false)
-	}: { dialog?: HTMLDialogElement; caso: FormattedCase | null; startEdit?: boolean; triggerDelete?: boolean } = $props();
+	}: {
+		dialog?: HTMLDialogElement;
+		caso: FormattedCase | null;
+		startEdit?: boolean;
+		triggerDelete?: boolean;
+	} = $props();
 
 	// Reset view and result when caso changes (prevents stale state across openings)
 	$effect(() => {
@@ -53,7 +74,12 @@
 
 	$effect(() => {
 		if (dialog) {
-			const handleOpen = () => { view = 'main'; actionResult = null; menuOpen = false; collectorInput = ''; };
+			const handleOpen = () => {
+				view = 'main';
+				actionResult = null;
+				menuOpen = false;
+				collectorInput = '';
+			};
 			dialog.addEventListener('show', handleOpen);
 			return () => dialog?.removeEventListener('show', handleOpen);
 		}
@@ -61,13 +87,18 @@
 
 	$effect(() => {
 		const handleClick = (e: MouseEvent) => {
-			if (!(e.target as HTMLElement).closest('.menu-container')) { menuOpen = false; }
+			if (!(e.target as HTMLElement).closest('.menu-container')) {
+				menuOpen = false;
+			}
 		};
 		setTimeout(() => document.addEventListener('click', handleClick), 0);
 		return () => document.removeEventListener('click', handleClick);
 	});
 
-	function toggleMenu(e: Event) { e.stopPropagation(); menuOpen = !menuOpen; }
+	function toggleMenu(e: Event) {
+		e.stopPropagation();
+		menuOpen = !menuOpen;
+	}
 
 	function handleCobrar() {
 		if (!caso) return;
@@ -84,7 +115,10 @@
 		const response = await fetch('/api/updateCase', { method: 'POST', body: data });
 		actionLoading = false;
 		if (response.status !== 200) {
-			actionResult = { success: false, message: (await response.json()).error?.message || 'Error al saldar caso' };
+			actionResult = {
+				success: false,
+				message: (await response.json()).error?.message || 'Error al saldar caso'
+			};
 		} else {
 			actionResult = { success: true, message: 'Caso saldado correctamente' };
 			invalidateAll();
@@ -101,7 +135,10 @@
 		const response = await fetch('/api/updateCase', { method: 'POST', body: data });
 		actionLoading = false;
 		if (response.status !== 200) {
-			actionResult = { success: false, message: (await response.json()).error?.message || 'Error al cerrar caso' };
+			actionResult = {
+				success: false,
+				message: (await response.json()).error?.message || 'Error al cerrar caso'
+			};
 		} else {
 			actionResult = { success: true, message: 'Caso cerrado correctamente' };
 			invalidateAll();
@@ -322,7 +359,12 @@
 	}
 </script>
 
-<dialog bind:this={dialog} onclick={(e) => { if (e.target === e.currentTarget) dialog?.close(); }}>
+<dialog
+	bind:this={dialog}
+	onclick={(e) => {
+		if (e.target === e.currentTarget) dialog?.close();
+	}}
+>
 	{#if caso}
 		<div class="modal-panel" style="width: min(90vw, 54rem);">
 			{#if view === 'main'}
@@ -335,22 +377,47 @@
 						{#if menuOpen}
 							<div class="dropdown-content">
 								{#if !caso.closed}
-									<button class="dropdown-item" onclick={() => { menuOpen = false; initEdit(); view = 'edit'; }}>
+									<button
+										class="dropdown-item"
+										onclick={() => {
+											menuOpen = false;
+											initEdit();
+											view = 'edit';
+										}}
+									>
 										<Pencil size={14} />
 										Editar caso
 									</button>
 									<div class="dropdown-separator"></div>
-									<button class="dropdown-item" onclick={() => { menuOpen = false; view = 'confirmCerrar'; }}>
+									<button
+										class="dropdown-item"
+										onclick={() => {
+											menuOpen = false;
+											view = 'confirmCerrar';
+										}}
+									>
 										<PackageCheck size={14} />
 										Cobrar todo
 									</button>
-									<button class="dropdown-item" onclick={() => { menuOpen = false; view = 'confirmSaldar'; }}>
+									<button
+										class="dropdown-item"
+										onclick={() => {
+											menuOpen = false;
+											view = 'confirmSaldar';
+										}}
+									>
 										<CheckCircle2 size={14} />
 										Saldar caso
 									</button>
 									<div class="dropdown-separator"></div>
 								{/if}
-								<button class="dropdown-item danger" onclick={() => { menuOpen = false; view = 'confirmDelete'; }}>
+								<button
+									class="dropdown-item danger"
+									onclick={() => {
+										menuOpen = false;
+										view = 'confirmDelete';
+									}}
+								>
 									<Trash2 size={14} />
 									Eliminar caso
 								</button>
@@ -379,10 +446,10 @@
 						<span class="info-value" style="color: #a8a8a8;">{caso.clientPhone}</span>
 					</div>
 					{#if caso.clientEmail}
-					<div class="info-item">
-						<span class="info-label">Email</span>
-						<span class="info-value" style="color: #a8a8a8;">{caso.clientEmail}</span>
-					</div>
+						<div class="info-item">
+							<span class="info-label">Email</span>
+							<span class="info-value" style="color: #a8a8a8;">{caso.clientEmail}</span>
+						</div>
 					{/if}
 					<div class="info-item">
 						<span class="info-label">Tipo</span>
@@ -394,7 +461,8 @@
 					</div>
 					<div class="info-item">
 						<span class="info-label">Adeuda JUS</span>
-						<span class="info-value mono" style="color: #ff6b5e;">{formatJUS(caso.restAmount)}</span>
+						<span class="info-value mono" style="color: #ff6b5e;">{formatJUS(caso.restAmount)}</span
+						>
 					</div>
 					<div class="info-item">
 						<span class="info-label">Cuotas pendientes</span>
@@ -442,14 +510,20 @@
 						</tbody>
 					</table>
 				</div>
-
 			{:else if view === 'confirmCerrar'}
 				<div class="modal-header">
 					<h2 class="modal-title">Cobrar todo</h2>
-					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"><X size={18} /></button>
+					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"
+						><X size={18} /></button
+					>
 				</div>
 				{#if actionResult}
-					<p class={actionResult.success ? 'text-success-msg' : 'text-error'} style="margin-bottom: 1rem;">{actionResult.message}</p>
+					<p
+						class={actionResult.success ? 'text-success-msg' : 'text-error'}
+						style="margin-bottom: 1rem;"
+					>
+						{actionResult.message}
+					</p>
 					<div style="display: flex; justify-content: flex-end;">
 						<button class="btn btn-ghost" onclick={() => dialog?.close()}>Cerrar</button>
 					</div>
@@ -457,32 +531,54 @@
 					<div class="spinner-wrap"><div class="er-spinner"></div></div>
 				{:else}
 					<p style="color: #a8a8a8; margin-bottom: 0.75rem;">
-						Se registrarán las <strong style="color: #f5f5f5;">{pendingCount} cuota{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1 ? 's' : ''}</strong> como cobradas hoy, con fecha y cobrador. Usá esta opción cuando cobraste las cuotas y querés dejar el registro completo.
+						Se registrarán las <strong style="color: #f5f5f5;"
+							>{pendingCount} cuota{pendingCount !== 1 ? 's' : ''} pendiente{pendingCount !== 1
+								? 's'
+								: ''}</strong
+						> como cobradas hoy, con fecha y cobrador. Usá esta opción cuando cobraste las cuotas y querés
+						dejar el registro completo.
 					</p>
 					<p style="color: #5e5e5e; font-size: 0.8rem; margin-bottom: 1.25rem;">
 						Si solo querés cerrar el debe sin registrar cobros, usá <em>Saldar caso</em>.
 					</p>
 					<div class="label" style="margin-bottom: 1.25rem;">
 						<span>Cobrador</span>
-						<input class="input" type="text" placeholder="Nombre del cobrador" bind:value={collectorInput} />
+						<input
+							class="input"
+							type="text"
+							placeholder="Nombre del cobrador"
+							bind:value={collectorInput}
+						/>
 					</div>
 					<div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
 						<button class="btn btn-ghost" onclick={() => (view = 'main')}>Cancelar</button>
-						<button class="btn btn-success" disabled={!collectorInput.trim()} onclick={handleCerrar}>Confirmar</button>
+						<button class="btn btn-success" disabled={!collectorInput.trim()} onclick={handleCerrar}
+							>Confirmar</button
+						>
 					</div>
 				{/if}
-
 			{:else if view === 'confirmSaldar'}
 				<div class="modal-header">
 					<h2 class="modal-title">Saldar caso</h2>
-					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"><X size={18} /></button>
+					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"
+						><X size={18} /></button
+					>
 				</div>
-				<p style="color: #a8a8a8; margin-bottom: 0.75rem;">El monto restante pasará a <strong style="color: #f5f5f5;">0</strong> sin registrar cobros individuales. Usá esta opción cuando el cliente pagó pero no necesitás dejar registro de fecha ni cobrador por cuota.</p>
+				<p style="color: #a8a8a8; margin-bottom: 0.75rem;">
+					El monto restante pasará a <strong style="color: #f5f5f5;">0</strong> sin registrar cobros individuales.
+					Usá esta opción cuando el cliente pagó pero no necesitás dejar registro de fecha ni cobrador
+					por cuota.
+				</p>
 				<p style="color: #5e5e5e; font-size: 0.8rem; margin-bottom: 1.5rem;">
 					Si cobraste las cuotas y querés registrar quién cobró y cuándo, usá <em>Cobrar todo</em>.
 				</p>
 				{#if actionResult}
-					<p class={actionResult.success ? 'text-success-msg' : 'text-error'} style="margin-bottom: 1rem;">{actionResult.message}</p>
+					<p
+						class={actionResult.success ? 'text-success-msg' : 'text-error'}
+						style="margin-bottom: 1rem;"
+					>
+						{actionResult.message}
+					</p>
 					<div style="display: flex; justify-content: flex-end;">
 						<button class="btn btn-ghost" onclick={() => dialog?.close()}>Cerrar</button>
 					</div>
@@ -494,15 +590,23 @@
 						<button class="btn btn-success" onclick={handleSaldar}>Saldar</button>
 					</div>
 				{/if}
-
 			{:else if view === 'confirmDelete'}
 				<div class="modal-header">
 					<h2 class="modal-title">Eliminar caso</h2>
-					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"><X size={18} /></button>
+					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"
+						><X size={18} /></button
+					>
 				</div>
-				<p style="color: #a8a8a8; margin-bottom: 1.5rem;">¿Estás seguro de eliminar el caso? Esta acción no se puede deshacer.</p>
+				<p style="color: #a8a8a8; margin-bottom: 1.5rem;">
+					¿Estás seguro de eliminar el caso? Esta acción no se puede deshacer.
+				</p>
 				{#if actionResult}
-					<p class={actionResult.success ? 'text-success-msg' : 'text-error'} style="margin-bottom: 1rem;">{actionResult.message}</p>
+					<p
+						class={actionResult.success ? 'text-success-msg' : 'text-error'}
+						style="margin-bottom: 1rem;"
+					>
+						{actionResult.message}
+					</p>
 					<div style="display: flex; justify-content: flex-end;">
 						<button class="btn btn-ghost" onclick={() => dialog?.close()}>Cerrar</button>
 					</div>
@@ -514,20 +618,33 @@
 						<button class="btn btn-danger" onclick={handleDelete}>Eliminar</button>
 					</div>
 				{/if}
-
 			{:else if view === 'edit'}
 				<div class="modal-header">
 					<h2 class="modal-title">Editar caso</h2>
-					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"><X size={18} /></button>
+					<button class="modal-icon-btn" onclick={() => dialog?.close()} aria-label="Cerrar"
+						><X size={18} /></button
+					>
 				</div>
 
 				{#if actionResult}
-					<p class={actionResult.success ? 'text-success-msg' : 'text-error'} style="margin-bottom: 1rem;">{actionResult.message}</p>
+					<p
+						class={actionResult.success ? 'text-success-msg' : 'text-error'}
+						style="margin-bottom: 1rem;"
+					>
+						{actionResult.message}
+					</p>
 					<div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
 						{#if !actionResult.success}
-							<button class="btn btn-ghost" onclick={() => (actionResult = null)}>Reintentar</button>
+							<button class="btn btn-ghost" onclick={() => (actionResult = null)}>Reintentar</button
+							>
 						{/if}
-						<button class="btn btn-ghost" onclick={() => { actionResult = null; dialog?.close(); }}>Cerrar</button>
+						<button
+							class="btn btn-ghost"
+							onclick={() => {
+								actionResult = null;
+								dialog?.close();
+							}}>Cerrar</button
+						>
 					</div>
 				{:else if actionLoading}
 					<div class="spinner-wrap"><div class="er-spinner"></div></div>
@@ -574,25 +691,52 @@
 					<div style="display: flex; gap: 0.75rem; align-items: flex-end; margin-bottom: 1.25rem;">
 						<div class="label" style="flex: 1; margin: 0;">
 							<span>Monto total ({caso.currency.name})</span>
-							<input class="input" type="text" inputmode="decimal" value={amountStr}
+							<input
+								class="input"
+								type="text"
+								inputmode="decimal"
+								value={amountStr}
 								onfocus={amountFocus}
-								oninput={(e) => { amountInput(e); amountStr = (e.target as HTMLInputElement).value; editData.amount = parseAmountInput(amountStr); }}
-								onblur={(e) => { amountStr = amountBlur(e); editData.amount = parseAmountInput(amountStr); }} />
+								oninput={(e) => {
+									amountInput(e);
+									amountStr = (e.target as HTMLInputElement).value;
+									editData.amount = parseAmountInput(amountStr);
+								}}
+								onblur={(e) => {
+									amountStr = amountBlur(e);
+									editData.amount = parseAmountInput(amountStr);
+								}}
+							/>
 						</div>
-						<button class="btn btn-ghost" style="display:flex;align-items:center;gap:0.35rem;white-space:nowrap;" onclick={redistribute}>
+						<button
+							class="btn btn-ghost"
+							style="display:flex;align-items:center;gap:0.35rem;white-space:nowrap;"
+							onclick={redistribute}
+						>
 							<RefreshCw size={13} /> Redistribuir
 						</button>
 					</div>
 
 					<div style="margin-bottom: 0.75rem;">
-						<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-							<span style="font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #5e5e5e;">
+						<div
+							style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;"
+						>
+							<span
+								style="font-size: 0.7rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #5e5e5e;"
+							>
 								Cuotas
-								<span style="color: #6e6e6e; font-weight: 400; margin-left: 0.4rem;">({editPending.length} pendiente{editPending.length !== 1 ? 's' : ''}{paidCount > 0 ? `, ${paidCount} cobrada${paidCount !== 1 ? 's' : ''}` : ''})</span>
+								<span style="color: #6e6e6e; font-weight: 400; margin-left: 0.4rem;"
+									>({editPending.length} pendiente{editPending.length !== 1 ? 's' : ''}{paidCount >
+									0
+										? `, ${paidCount} cobrada${paidCount !== 1 ? 's' : ''}`
+										: ''})</span
+								>
 							</span>
 							<div style="display: flex; gap: 0.5rem;">
 								<button class="btn btn-ghost btn-sm" onclick={addCuota}>+ Cuota</button>
-								<button class="btn btn-ghost btn-sm" disabled={!canRemove} onclick={removeCuota}>− Cuota</button>
+								<button class="btn btn-ghost btn-sm" disabled={!canRemove} onclick={removeCuota}
+									>− Cuota</button
+								>
 							</div>
 						</div>
 						<div class="payments-table-wrap">
@@ -609,69 +753,103 @@
 										<tr style="opacity: 0.45; pointer-events: none;">
 											<td>
 												{p.payment_number}
-												<span class="badge badge-pagada" style="font-size:0.65rem;margin-left:0.25rem;">cobrada</span>
+												<span
+													class="badge badge-pagada"
+													style="font-size:0.65rem;margin-left:0.25rem;">cobrada</span
+												>
 											</td>
 											<td>{formatDateToDMY(p.due_date)}</td>
-											<td class="col-numeric" style="color: #3fb98a;">{formatJUS(p.amount ?? 0)}</td>
+											<td class="col-numeric" style="color: #3fb98a;">{formatJUS(p.amount ?? 0)}</td
+											>
 										</tr>
 									{/each}
 									{#each editPending as _, i}
 										<tr>
 											<td>
 												{editPending[i].payment_number}
-												{#if editPending[i].current}<span class="badge badge-proximo" style="font-size:0.65rem;margin-left:0.25rem;">actual</span>{/if}
+												{#if editPending[i].current}<span
+														class="badge badge-proximo"
+														style="font-size:0.65rem;margin-left:0.25rem;">actual</span
+													>{/if}
 											</td>
 											<td>
-									<DatePicker.Root locale="es" bind:value={pendingDates[i]} weekStartsOn={1}>
-										<DatePicker.Input class="date-field-input" style="font-size:0.8rem;">
-											{#snippet children({ segments })}
-												{#each segments as { part, value }}
-													<DatePicker.Segment {part} class="date-segment">{value}</DatePicker.Segment>
-												{/each}
-												<DatePicker.Trigger class="date-picker-trigger">
-													<CalendarDays size={13} />
-												</DatePicker.Trigger>
-											{/snippet}
-										</DatePicker.Input>
-										<DatePicker.Content class="date-picker-content">
-											<DatePicker.Calendar>
-												{#snippet children({ months, weekdays })}
-													<DatePicker.Header class="date-picker-header">
-														<DatePicker.PrevButton class="date-picker-nav-btn"><ChevronLeft size={14} /></DatePicker.PrevButton>
-														<DatePicker.Heading class="date-picker-heading" />
-														<DatePicker.NextButton class="date-picker-nav-btn"><ChevronRight size={14} /></DatePicker.NextButton>
-													</DatePicker.Header>
-													{#each months as month}
-														<DatePicker.Grid class="date-picker-grid">
-															<DatePicker.GridHead>
-																<DatePicker.GridRow>
-																	{#each weekdays as day}
-																		<DatePicker.HeadCell class="date-picker-head-cell">{day.slice(0,2)}</DatePicker.HeadCell>
-																	{/each}
-																</DatePicker.GridRow>
-															</DatePicker.GridHead>
-															<DatePicker.GridBody>
-																{#each month.weeks as weekDates}
-																	<DatePicker.GridRow>
-																		{#each weekDates as date}
-																			<DatePicker.Cell {date} month={month.value} class="date-picker-cell">
-																				<DatePicker.Day class="date-picker-day" />
-																			</DatePicker.Cell>
-																		{/each}
-																	</DatePicker.GridRow>
+												<DatePicker.Root locale="es" bind:value={pendingDates[i]} weekStartsOn={1}>
+													<DatePicker.Input class="date-field-input" style="font-size:0.8rem;">
+														{#snippet children({ segments })}
+															{#each segments as { part, value }}
+																<DatePicker.Segment {part} class="date-segment"
+																	>{value}</DatePicker.Segment
+																>
+															{/each}
+															<DatePicker.Trigger class="date-picker-trigger">
+																<CalendarDays size={13} />
+															</DatePicker.Trigger>
+														{/snippet}
+													</DatePicker.Input>
+													<DatePicker.Content class="date-picker-content">
+														<DatePicker.Calendar>
+															{#snippet children({ months, weekdays })}
+																<DatePicker.Header class="date-picker-header">
+																	<DatePicker.PrevButton class="date-picker-nav-btn"
+																		><ChevronLeft size={14} /></DatePicker.PrevButton
+																	>
+																	<DatePicker.Heading class="date-picker-heading" />
+																	<DatePicker.NextButton class="date-picker-nav-btn"
+																		><ChevronRight size={14} /></DatePicker.NextButton
+																	>
+																</DatePicker.Header>
+																{#each months as month}
+																	<DatePicker.Grid class="date-picker-grid">
+																		<DatePicker.GridHead>
+																			<DatePicker.GridRow>
+																				{#each weekdays as day}
+																					<DatePicker.HeadCell class="date-picker-head-cell"
+																						>{day.slice(0, 2)}</DatePicker.HeadCell
+																					>
+																				{/each}
+																			</DatePicker.GridRow>
+																		</DatePicker.GridHead>
+																		<DatePicker.GridBody>
+																			{#each month.weeks as weekDates}
+																				<DatePicker.GridRow>
+																					{#each weekDates as date}
+																						<DatePicker.Cell
+																							{date}
+																							month={month.value}
+																							class="date-picker-cell"
+																						>
+																							<DatePicker.Day class="date-picker-day" />
+																						</DatePicker.Cell>
+																					{/each}
+																				</DatePicker.GridRow>
+																			{/each}
+																		</DatePicker.GridBody>
+																	</DatePicker.Grid>
 																{/each}
-															</DatePicker.GridBody>
-														</DatePicker.Grid>
-													{/each}
-												{/snippet}
-											</DatePicker.Calendar>
-										</DatePicker.Content>
-									</DatePicker.Root>
-								</td>
-											<td class="col-numeric"><input class="input" style="padding:0.25rem 0.4rem;font-size:0.8rem;text-align:right;" type="text" inputmode="decimal" value={pendingAmounts[i]}
-											onfocus={amountFocus}
-											oninput={(e) => { amountInput(e); pendingAmounts[i] = (e.target as HTMLInputElement).value; editPending[i].amount = parseAmountInput(pendingAmounts[i]); }}
-											onblur={(e) => { pendingAmounts[i] = amountBlur(e); editPending[i].amount = parseAmountInput(pendingAmounts[i]); }} /></td>
+															{/snippet}
+														</DatePicker.Calendar>
+													</DatePicker.Content>
+												</DatePicker.Root>
+											</td>
+											<td class="col-numeric"
+												><input
+													class="input"
+													style="padding:0.25rem 0.4rem;font-size:0.8rem;text-align:right;"
+													type="text"
+													inputmode="decimal"
+													value={pendingAmounts[i]}
+													onfocus={amountFocus}
+													oninput={(e) => {
+														amountInput(e);
+														pendingAmounts[i] = (e.target as HTMLInputElement).value;
+														editPending[i].amount = parseAmountInput(pendingAmounts[i]);
+													}}
+													onblur={(e) => {
+														pendingAmounts[i] = amountBlur(e);
+														editPending[i].amount = parseAmountInput(pendingAmounts[i]);
+													}}
+												/></td
+											>
 										</tr>
 									{/each}
 								</tbody>
@@ -681,15 +859,20 @@
 
 					{#if Math.abs(amountDiff) > 0.01}
 						<p class="text-error" style="font-size: 0.8rem; margin-bottom: 1rem;">
-							{amountDiff > 0 ? `Sobran ${formatJUS(amountDiff)} en cuotas` : `Faltan asignar ${formatJUS(-amountDiff)}`}
+							{amountDiff > 0
+								? `Sobran ${formatJUS(amountDiff)} en cuotas`
+								: `Faltan asignar ${formatJUS(-amountDiff)}`}
 						</p>
 					{:else}
-						<p class="text-success-msg" style="font-size: 0.8rem; margin-bottom: 1rem;">✓ Monto asignado correctamente</p>
+						<p class="text-success-msg" style="font-size: 0.8rem; margin-bottom: 1rem;">
+							✓ Monto asignado correctamente
+						</p>
 					{/if}
 
 					<div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
 						<button class="btn btn-ghost" onclick={() => (view = 'main')}>Cancelar</button>
-						<button class="btn btn-primary" disabled={!canSave} onclick={handleSave}>Guardar</button>
+						<button class="btn btn-primary" disabled={!canSave} onclick={handleSave}>Guardar</button
+						>
 					</div>
 				{/if}
 			{/if}
@@ -698,7 +881,9 @@
 </dialog>
 
 <style>
-	.menu-container { position: relative; }
+	.menu-container {
+		position: relative;
+	}
 	.dropdown-content {
 		position: absolute;
 		right: 0;
