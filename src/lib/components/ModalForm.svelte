@@ -217,8 +217,8 @@
 							{#if formErrors?.errors?.['clientPhone']}<span class="text-error">{formErrors.errors['clientPhone']}</span>{/if}
 						</div>
 						<div class="label">
-							<span>Email</span>
-							<input autocomplete="off" class="input" type="email" placeholder="email@ejemplo.com" name="clientEmail" />
+							<span>Email <span style="opacity:0.45; font-size:0.75rem;">(opcional)</span></span>
+							<input autocomplete="off" class="input" type="text" placeholder="email@ejemplo.com" name="clientEmail" />
 							{#if formErrors?.errors?.['clientEmail']}<span class="text-error">{formErrors.errors['clientEmail']}</span>{/if}
 						</div>
 						<div class="label">

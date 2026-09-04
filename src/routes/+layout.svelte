@@ -107,10 +107,11 @@
 <style>
 	.nav-title {
 		font-family: 'Cinzel', Georgia, serif;
-		font-size: 1.25rem;
+		font-size: clamp(0.85rem, 4vw, 1.25rem);
 		font-weight: 600;
 		letter-spacing: 0.06em;
 		color: #f5f5f5;
+		white-space: nowrap;
 	}
 
 	@media (min-width: 768px) {

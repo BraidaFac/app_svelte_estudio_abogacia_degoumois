@@ -126,7 +126,7 @@
 							<td class="col-desc"><div class="desc-scroll">{caso.description}</div></td>
 							<td>{caso.clientName}</td>
 							<td class="col-numeric">{formatAmount(caso.restAmount, caso.currency.name)}</td>
-							<td class="col-numeric">{caso.quantityPaymentsToPay}/{caso.payments.length}</td>
+							<td class="col-numeric">{caso.payments.length - caso.quantityPaymentsToPay}/{caso.payments.length}</td>
 							<td>{caso.dueDate ?? '—'}</td>
 							<td class="col-actions">
 								<button class="kebab-btn" onclick={(e) => toggleMenu(caso.id, e)}>

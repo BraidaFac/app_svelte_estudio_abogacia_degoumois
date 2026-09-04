@@ -30,7 +30,7 @@ const NewCaseSchema = z.object({
 	amount: z.string().min(1),
 	clientName: z.string().min(1),
 	clientPhone: z.string().min(1),
-	clientEmail: z.string().email().optional(),
+	clientEmail: z.string().email().optional().or(z.literal('')),
 	caseNumber: z.string().max(50).optional(),
 	quantity_payment: z.string().min(1),
 	due_date: z.string().min(1),

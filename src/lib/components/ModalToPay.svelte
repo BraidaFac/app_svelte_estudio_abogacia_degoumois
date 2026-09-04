@@ -9,6 +9,7 @@
 	import type { FormattedCase } from '$lib/types/case.types';
 	import { X } from '@lucide/svelte';
 	import { handleApiResponse } from '$lib/utils/response';
+	import { toaster } from '$lib/stores/toast';
 
 	let {
 		dialog = $bindable<HTMLDialogElement | undefined>(),
@@ -57,6 +58,7 @@
 			loading = false;
 			const result = await handleApiResponse(response);
 			if (result.success) {
+				toaster.success({ title: 'Pago registrado correctamente' });
 				handleClose();
 				if (page.url.pathname === '/') invalidate('update:cases');
 			} else {

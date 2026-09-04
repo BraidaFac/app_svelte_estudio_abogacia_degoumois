@@ -18,7 +18,12 @@ async function main() {
 		update: {},
 		create: { name: 'EUR', value: 1650, isDefault: false }
 	});
-	console.log('Currencies seeded: JUS (default), USD, EUR');
+	await db.currency.upsert({
+		where: { name: 'ARS' },
+		update: {},
+		create: { name: 'ARS', value: 1, isDefault: false }
+	});
+	console.log('Currencies seeded: JUS (default), USD, EUR, ARS');
 }
 
 main()
