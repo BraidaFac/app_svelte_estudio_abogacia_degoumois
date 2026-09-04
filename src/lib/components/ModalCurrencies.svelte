@@ -83,6 +83,7 @@
 						<span>
 							{currency.name}
 							{#if currency.isDefault}<span style="font-size: 0.75rem; opacity: 0.6;">(defecto)</span>{/if}
+							{#if currency.name === 'ARS'}<span style="font-size: 0.75rem; opacity: 0.6;">(fijo)</span>{/if}
 						</span>
 						{#if editingName === currency.name}
 							<div style="display: flex; gap: 0.5rem; align-items: center;">
@@ -105,9 +106,11 @@
 								<span class="input" style="background: transparent; cursor: default;">
 									$ {addThousandSeparator(currency.value)}
 								</span>
-								<button class="modal-icon-btn" onclick={() => startEdit(currency)} aria-label="Editar {currency.name}">
-									<Pencil size={15} />
-								</button>
+								{#if currency.name !== 'ARS'}
+									<button class="modal-icon-btn" onclick={() => startEdit(currency)} aria-label="Editar {currency.name}">
+										<Pencil size={15} />
+									</button>
+								{/if}
 							</div>
 						{/if}
 					</div>
